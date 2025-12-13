@@ -1,0 +1,30 @@
+import mongoose, { Schema, Document } from 'mongoose';
+
+export interface IPortfolio extends Document {
+  id: number;
+  name: string;
+}
+
+const PortfolioSchema: Schema = new Schema(
+  {
+    id: { type: Number, unique: true },
+    name: { type: String, required: true },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+PortfolioSchema.pre('save', async function () {
+  const portfolio = this as unknown as IPortfolio;
+
+  if (portfolio.isNew) {
+    const lastPortfolio = await mongoose
+      .model<IPortfolio>('Portfolio')
+      .findOne()
+      .sort({ id: -1 });
+    portfolio.id = lastPortfolio && lastPortfolio.id ? lastPortfolio.id + 1 : 1;
+  }
+});
+
+export default mongoose.model<IPortfolio>('Portfolio', PortfolioSchema);
