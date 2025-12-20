@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import type { TradeResponse, Strategy, Symbol, PnlCalendarResponse, PnlCalendarDay } from '../types/api';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -10,8 +11,8 @@ export const queryClient = new QueryClient({
 });
 
 const BASE_URL = 'http://localhost:5000/api';
-
-export const fetchTrades = async (page = 1, limit = 20, filters?: { strategy_id?: string; outcome?: string; search?: string }) => {
+export const BACKEND_URL = 'http://localhost:5000';
+export const fetchTrades = async (page = 1, limit = 20, filters?: { strategy_id?: string; outcome?: string; search?: string }): Promise<TradeResponse> => {
   const params = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
@@ -28,7 +29,7 @@ export const fetchTrades = async (page = 1, limit = 20, filters?: { strategy_id?
   return response.json();
 };
 
-export const updateTrade = async (id: string, tradeData: FormData) => {
+export const updateTrade = async (id: string, tradeData: FormData): Promise<any> => {
   const response = await fetch(`${BASE_URL}/trades/${id}`, {
     method: 'PUT',
     body: tradeData,
@@ -40,7 +41,7 @@ export const updateTrade = async (id: string, tradeData: FormData) => {
   return response.json();
 };
 
-export const deleteTrade = async (id: string) => {
+export const deleteTrade = async (id: string): Promise<any> => {
   const response = await fetch(`${BASE_URL}/trades/${id}`, {
     method: 'DELETE',
   });
@@ -48,7 +49,7 @@ export const deleteTrade = async (id: string) => {
   return response.json();
 };
 
-export const createTrade = async (tradeData: FormData) => {
+export const createTrade = async (tradeData: FormData): Promise<any> => {
   const response = await fetch(`${BASE_URL}/trades`, {
     method: 'POST',
     body: tradeData,
@@ -60,19 +61,19 @@ export const createTrade = async (tradeData: FormData) => {
   return response.json();
 };
 
-export const fetchStrategies = async () => {
+export const fetchStrategies = async (): Promise<Strategy[]> => {
   const response = await fetch(`${BASE_URL}/strategies`);
   if (!response.ok) throw new Error('Failed to fetch strategies');
   return response.json();
 };
 
-export const fetchSymbols = async () => {
+export const fetchSymbols = async (): Promise<Symbol[]> => {
   const response = await fetch(`${BASE_URL}/symbols`);
   if (!response.ok) throw new Error('Failed to fetch symbols');
   return response.json();
 };
 
-export const fetchPnlCalendar = async (month: number, year: number) => {
+export const fetchPnlCalendar = async (month: number, year: number): Promise<PnlCalendarDay[]> => {
     const response = await fetch(`${BASE_URL}/trades/pnl/calendar?month=${month}&year=${year}`);
     if (!response.ok) {
         throw new Error('Failed to fetch PnL calendar data');

@@ -13,7 +13,7 @@ const Layout = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-white">
+    <div className="flex min-h-screen bg-gray-950 text-white">
       <Sidebar isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
       <div
         className={`flex-1 p-8 transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-50'}`}

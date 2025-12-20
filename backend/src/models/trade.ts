@@ -18,6 +18,7 @@ export interface ITrade extends Document {
   exit_price: number;
   entry_id: number | null;
   pl: number | null;
+  tags: string[];
 }
 
 const TradeSchema: Schema = new Schema(
@@ -36,9 +37,36 @@ const TradeSchema: Schema = new Schema(
     exit_reason: { type: String, required: true },
     outcome: { type: String, enum: ['win', 'loss', 'neutral'], required: true },
     entry_price: { type: Number, required: true },
-    exit_price: { type: Number, required: true },
+    stop_loss: { type: Number, required: false },
+    take_profit: { type: Number, required: false },
     entry_id: { type: Number, required: false, default: null },
     pl: { type: Number, required: false },
+    rr: { type: Number, required: false },
+    is_greed: { type: Boolean, required: false, default: false },
+    is_fomo: { type: Boolean, required: false, default: false },
+    tags: { type: [String], required: false, default: [] },
+    market_condition: {
+      type: String,
+      enum: ['trending', 'ranging', 'volatile', 'choppy'],
+      required: false,
+    },
+    entry_execution: {
+      type: String,
+      enum: ['perfect', 'early', 'late'],
+      required: false,
+    },
+    exit_execution: {
+      type: String,
+      enum: ['perfect', 'early', 'late'],
+      required: false,
+    },
+    emotional_state: {
+      type: [String],
+      enum: ['calm', 'anxious', 'overconfident', 'fearful', 'tilted'],
+      default: [],
+    },
+    post_trade_thoughts: { type: String, required: false, default: null },
+    rule_violations: { type: [String], required: false, default: [], enum: ["Early Exit", "Late Exit", "Overconfidence", "Fear", "Tilt", "Early Entry", "Late Entry", "Revenge Trade"] },
   },
   {
     timestamps: true,

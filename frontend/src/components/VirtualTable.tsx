@@ -64,7 +64,7 @@ export function VirtualTable<T>({ data, columns, height = '500px' }: VirtualTabl
                                     <th
                                         key={header.id}
                                         colSpan={header.colSpan}
-                                        className={cn("px-6 py-4 cursor-pointer select-none border-b border-gray-700 text-secondary font-semibold tracking-wider hover:text-white transition-colors")}
+                                        className={cn("px-6 py-4 cursor-pointer select-none border-b border-gray-700 text-secondary font-semibold tracking-wider hover:text-white transition-colors !bg-transparent ")}
                                         style={{ width: header.getSize() }}
                                         onClick={header.column.getToggleSortingHandler()}
                                     >

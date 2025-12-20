@@ -1,36 +1,27 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { fetchTrades, createTrade, updateTrade, deleteTrade, fetchStrategies, fetchSymbols, fetchPnlCalendar } from '../api/client';
+import type { Trade, TradeResponse, Strategy, Symbol, PnlCalendarResponse, PnlCalendarDay } from '../types/api';
 
-export interface Trade {
-  _id: string;
-  strategy_id: number;
-  symbol_id: number;
-  quantity: number;
-  type: 'buy' | 'sell';
-  trade_date: string;
-  entry_price: number;
-  exit_price: number;
-  pl?: number;
-  outcome: 'win' | 'loss' | 'neutral';
-  photo?: string;
-  [key: string]: any;
-}
-
-export interface TradeResponse {
-  trades: Trade[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  };
-}
+// Re-export types for convenience
+export type { Trade, TradeResponse, Strategy, Symbol };
 
 export const useTrades = (page: number, limit: number, filters?: { strategy_id?: string; outcome?: string; search?: string }) => {
   return useQuery<TradeResponse>({
     queryKey: ['trades', page, limit, filters],
     queryFn: () => fetchTrades(page, limit, filters),
     placeholderData: (previousData) => previousData,
+  });
+};
+
+export const useInfiniteTrades = (limit: number, filters?: { strategy_id?: string; outcome?: string; search?: string }) => {
+  return useInfiniteQuery<TradeResponse>({
+    queryKey: ['trades', 'infinite', limit, filters],
+    queryFn: ({ pageParam = 1 }) => fetchTrades(pageParam as number, limit, filters),
+    getNextPageParam: (lastPage) => {
+      const { page, pages } = lastPage.pagination;
+      return page < pages ? page + 1 : undefined;
+    },
+    initialPageParam: 1,
   });
 };
 
@@ -71,21 +62,21 @@ export const useDeleteTrade = () => {
 };
 
 export const useStrategies = () => {
-  return useQuery({
+  return useQuery<Strategy[]>({
     queryKey: ['strategies'],
     queryFn: fetchStrategies,
   });
 };
 
 export const useSymbols = () => {
-  return useQuery({
+  return useQuery<Symbol[]>({
     queryKey: ['symbols'],
     queryFn: fetchSymbols,
   });
 };
 
 export const usePnlCalendar = (month: number, year: number) => {
-    return useQuery({
+    return useQuery<PnlCalendarDay[]>({
         queryKey: ['pnlCalendar', month, year],
         queryFn: () => fetchPnlCalendar(month, year),
         staleTime: 1000 * 60 * 5, // 5 minutes

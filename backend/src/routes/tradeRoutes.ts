@@ -46,9 +46,9 @@ router.get('/pnl/calendar', async (req: Request, res: Response) => {
 
     // Format for frontend: { date: 'YYYY-MM-DD', pnl: 123, count: 5 }
     const result = trades.map(t => ({
-        date: t._id,
-        pnl: t.totalPnl,
-        count: t.count
+      date: t._id,
+      pnl: t.totalPnl,
+      count: t.count
     }));
 
     res.json(result);
@@ -68,6 +68,24 @@ router.post(
       if (req.file) {
         req.body.photo = req.file.path;
       }
+      const { entry_price, stop_loss, take_profit } = req.body;
+
+      // Validate required fields
+      if (!stop_loss || !take_profit) {
+        req.body.rr = null;
+      } else {
+        const riskPerUnit = Math.abs(entry_price - stop_loss);
+
+        if (riskPerUnit === 0) {
+          throw new Error("Stop loss cannot be equal to entry price");
+        }
+
+        const rr = (take_profit - entry_price) / riskPerUnit;
+
+
+        req.body.rr = Number(rr.toFixed(2));
+      }
+
       const trade = new Trade(req.body);
       const savedTrade = await trade.save();
       res.status(201).json(savedTrade);
@@ -89,31 +107,35 @@ router.get('/', async (req: Request, res: Response) => {
     const query: any = {};
 
     if (strategy_id) {
-        query.strategy_id = strategy_id;
+      query.strategy_id = strategy_id;
     }
 
     if (outcome) {
-        query.outcome = outcome;
+      query.outcome = outcome;
     }
 
     if (search) {
-        const searchRegex = { $regex: search, $options: 'i' };
-        query.$or = [
-            { entry_reason: searchRegex },
-            { exit_reason: searchRegex },
-            { notes: searchRegex },
-             // If we want to search by symbol name, we'd need to lookup symbol_id, but that is harder without aggregation or population.
-             // For now searching text fields.
-        ];
+      const searchRegex = { $regex: search, $options: 'i' };
+      query.$or = [
+        { entry_reason: searchRegex },
+        { exit_reason: searchRegex },
+        { notes: searchRegex },
+        // If we want to search by symbol name, we'd need to lookup symbol_id, but that is harder without aggregation or population.
+        // For now searching text fields.
+      ];
     }
 
     console.log(`Fetching trades page ${page} with limit ${limit}`, query);
+
 
     const [trades, total] = await Promise.all([
       Trade.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
       Trade.countDocuments(query),
     ]);
 
+    trades.forEach((trade) => {
+      console.log(trade.tags)
+    });
     res.json({
       trades,
       pagination: {
@@ -130,7 +152,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 // Get single trade
 router.get('/:id', async (req: Request, res: Response) => {
-// ... existing get id code ...
+  // ... existing get id code ...
   try {
     const trade = await Trade.findById(req.params.id);
     if (!trade) return res.status(404).json({ message: 'Trade not found' });

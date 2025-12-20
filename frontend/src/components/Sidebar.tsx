@@ -21,7 +21,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
             <nav className="flex-1 p-3 space-y-2">
                 <Link
                     to="/"
-                    className="flex items-center space-x-3 p-3 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary  group border border-transparent [&.active]:border-primary/20"
+                    className="flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary  group border border-transparent [&.active]:border-primary/20"
                     title={isCollapsed ? "Dashboard" : ""}
                 >
                     <div className={classNames("min-w-[20px] flex ")}>
@@ -31,7 +31,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
                 </Link>
                 <Link
                     to="/settings"
-                    className="flex items-center space-x-3 p-3 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20"
+                    className="flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20"
                     title={isCollapsed ? "Settings" : ""}
                 >
                     <div className="min-w-[20px] flex justify-center">
