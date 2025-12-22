@@ -17,7 +17,7 @@ import dayjs from "dayjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useCreateTrade,
-  useStrategies,
+  // useStrategies,
   useSymbols,
   useUpdateTrade,
   type Trade,
@@ -38,13 +38,13 @@ const CreateTradeModal: React.FC<Props> = ({
 }) => {
   const createMutation = useCreateTrade();
   const updateMutation = useUpdateTrade();
-  const { data: strategies } = useStrategies();
+  // const { data: strategies } = useStrategies();
   const { data: symbols } = useSymbols();
 
   const { control, handleSubmit, reset, watch } = useForm<TradeFormValues>({
-    resolver: zodResolver(tradeSchema),
+    resolver: zodResolver(tradeSchema as any),
     defaultValues: {
-      strategy_id: undefined,
+      strategy_id: 1,
       symbol_id: "",
       quantity: 10,
       confidence_level: 8,
@@ -67,13 +67,11 @@ const CreateTradeModal: React.FC<Props> = ({
     },
   });
 
-  const watchedData = watch()
-
+  const watchedData = watch();
 
   /** Populate form on edit */
   useEffect(() => {
     if (isOpen && tradeToEdit) {
-
       reset({
         strategy_id: tradeToEdit.strategy_id.toString(),
         symbol_id: tradeToEdit.symbol_id.toString(),
@@ -89,7 +87,9 @@ const CreateTradeModal: React.FC<Props> = ({
         is_greed: tradeToEdit.is_greed ?? false,
         is_fomo: tradeToEdit.is_fomo ?? false,
         tags: tradeToEdit.tags ?? [],
-        rule_violations: tradeToEdit.rule_violations as unknown as TradeFormValues["rule_violations"] ?? [],
+        rule_violations:
+          (tradeToEdit.rule_violations as unknown as TradeFormValues["rule_violations"]) ??
+          [],
       });
     }
 
@@ -133,12 +133,12 @@ const CreateTradeModal: React.FC<Props> = ({
       footer={null}
       centered
       width={{
-        xs: '90%',
-        sm: '70%',
-        md: '80%',
-        lg: '80%',
-        xl: '60%',
-        xxl: '60%',
+        xs: "90%",
+        sm: "70%",
+        md: "80%",
+        lg: "80%",
+        xl: "60%",
+        xxl: "60%",
       }}
       destroyOnClose
     >
@@ -160,7 +160,6 @@ const CreateTradeModal: React.FC<Props> = ({
             display: "grid",
             gridTemplateColumns: "repeat(7, 1fr)",
             gap: 16,
-
           }}
         >
           <Form.Item label="Symbol" style={{ gridColumn: "span 2" }}>
@@ -168,13 +167,16 @@ const CreateTradeModal: React.FC<Props> = ({
               control={control}
               name="symbol_id"
               render={({ field }) => (
-                <Select {...field} placeholder="Select symbol">
-                  {symbols?.map((s) => (
-                    <Select.Option key={s.id} value={String(s.id)}>
-                      {s.symbol}
-                    </Select.Option>
-                  ))}
-                </Select>
+                <Select
+                  {...field}
+                  placeholder="Select symbol"
+                  options={symbols?.map((val) => ({
+                    label: val.symbol,
+                    value: val.id,
+                  }))}
+                  showSearch
+                  
+                />
               )}
             />
           </Form.Item>
@@ -184,7 +186,11 @@ const CreateTradeModal: React.FC<Props> = ({
               control={control}
               name="quantity"
               render={({ field }) => (
-                <InputNumber {...field} className="w-full" styles={{ root: { width: "100%" } }} />
+                <InputNumber
+                  {...field}
+                  className="w-full"
+                  styles={{ root: { width: "100%" } }}
+                />
               )}
             />
           </Form.Item>
@@ -193,7 +199,13 @@ const CreateTradeModal: React.FC<Props> = ({
               control={control}
               name="confidence_level"
               render={({ field }) => (
-                <InputNumber {...field} className="w-full" styles={{ root: { width: "100%" } }} min={1} max={10} />
+                <InputNumber
+                  {...field}
+                  className="w-full"
+                  styles={{ root: { width: "100%" } }}
+                  min={1}
+                  max={10}
+                />
               )}
             />
           </Form.Item>
@@ -305,7 +317,9 @@ const CreateTradeModal: React.FC<Props> = ({
                 <Select {...field}>
                   <Select.Option value="calm">Calm</Select.Option>
                   <Select.Option value="anxious">Anxious</Select.Option>
-                  <Select.Option value="overconfident">Overconfident</Select.Option>
+                  <Select.Option value="overconfident">
+                    Overconfident
+                  </Select.Option>
                   <Select.Option value="fearful">Fearful</Select.Option>
                   <Select.Option value="tilted">Tilted</Select.Option>
                 </Select>
@@ -313,8 +327,10 @@ const CreateTradeModal: React.FC<Props> = ({
             />
           </Form.Item>
 
-
-          <Form.Item label="Photo Evidence" style={{ gridColumn: "span 1", placeSelf: "center" }}>
+          <Form.Item
+            label="Photo Evidence"
+            style={{ gridColumn: "span 1", placeSelf: "center" }}
+          >
             <Controller
               control={control}
               name="photo"
@@ -335,36 +351,34 @@ const CreateTradeModal: React.FC<Props> = ({
             <Controller
               control={control}
               name="entry_reason"
-              render={({ field }) => (
-                <Input.TextArea {...field} rows={4} />
-              )}
+              render={({ field }) => <Input.TextArea {...field} rows={4} />}
             />
           </Form.Item>
           <Form.Item label="Exit Reason" style={{ gridColumn: "span 3" }}>
             <Controller
               control={control}
               name="exit_reason"
-              render={({ field }) => (
-                <Input.TextArea {...field} rows={4} />
-              )}
+              render={({ field }) => <Input.TextArea {...field} rows={4} />}
             />
           </Form.Item>
-          <Form.Item label="Greed" style={{ gridColumn: "span 1", placeSelf: "center" }}>
+          <Form.Item
+            label="Greed"
+            style={{ gridColumn: "span 1", placeSelf: "center" }}
+          >
             <Controller
               control={control}
               name="is_greed"
-              render={({ field }) => (
-                <Switch {...field} />
-              )}
+              render={({ field }) => <Switch {...field} />}
             />
           </Form.Item>
-          <Form.Item label="FOMO" style={{ gridColumn: "span 1", placeSelf: "center" }}>
+          <Form.Item
+            label="FOMO"
+            style={{ gridColumn: "span 1", placeSelf: "center" }}
+          >
             <Controller
               control={control}
               name="is_fomo"
-              render={({ field }) => (
-                <Switch {...field} />
-              )}
+              render={({ field }) => <Switch {...field} />}
             />
           </Form.Item>
           <Form.Item label="Rule Violations" style={{ gridColumn: "span 1" }}>
@@ -372,28 +386,47 @@ const CreateTradeModal: React.FC<Props> = ({
               control={control}
               name="rule_violations"
               render={({ field }) => (
-                <Select mode="tags" {...field} placeholder="Add rule violations" options={[{ value: "Early Exit", label: "Early Exit" }, { value: "Late Exit", label: "Late Exit" }, { value: "Overconfidence", label: "Overconfidence" }, { value: "Fear", label: "Fear" }, { value: "Tilt", label: "Tilt" }, { value: "Early Entry", label: "Early Entry" }, { value: "Late Entry", label: "Late Entry" }, { value: "Revenge Trade", label: "Revenge Trade" }]} style={{ maxHeight: "100px", overflowY: "scroll" }} />
+                <Select
+                  mode="tags"
+                  {...field}
+                  placeholder="Add rule violations"
+                  options={[
+                    { value: "Early Exit", label: "Early Exit" },
+                    { value: "Late Exit", label: "Late Exit" },
+                    { value: "Overconfidence", label: "Overconfidence" },
+                    { value: "Fear", label: "Fear" },
+                    { value: "Tilt", label: "Tilt" },
+                    { value: "Early Entry", label: "Early Entry" },
+                    { value: "Late Entry", label: "Late Entry" },
+                    { value: "Revenge Trade", label: "Revenge Trade" },
+                  ]}
+                  style={{ maxHeight: "100px", overflowY: "scroll" }}
+                />
               )}
             />
           </Form.Item>
-          <Form.Item label="Post Trade Thoughts" style={{ gridColumn: "span 2" }}>
+          <Form.Item
+            label="Post Trade Thoughts"
+            style={{ gridColumn: "span 2" }}
+          >
             <Controller
               control={control}
               name="post_trade_thoughts"
-              render={({ field }) => (
-                <Input.TextArea {...field} rows={4} />
-              )}
+              render={({ field }) => <Input.TextArea {...field} rows={4} />}
             />
           </Form.Item>
-
-
 
           <Form.Item label="Tags" style={{ gridColumn: "span 2" }}>
             <Controller
               control={control}
               name="tags"
               render={({ field }) => (
-                <Select mode="tags" {...field} placeholder="Add tags" style={{ minHeight: "100px", maxHeight: "200px" }} />
+                <Select
+                  mode="tags"
+                  {...field}
+                  placeholder="Add tags"
+                  style={{ minHeight: "100px", maxHeight: "200px" }}
+                />
               )}
             />
           </Form.Item>

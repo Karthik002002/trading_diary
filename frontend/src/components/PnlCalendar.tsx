@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { Icon } from "./ui/Icon";
 import { usePnlCalendar } from "../hooks/useTrades";
+import { Tooltip } from "antd";
 
-interface CalendarProps {}
+interface CalendarProps { }
 
 interface PnlData {
   date: string;
   pnl: number;
-  tradeCount: number;
+  returns: number;
+  count: number;
 }
 
 const PnlCalendar: React.FC<CalendarProps> = () => {
@@ -116,7 +118,7 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center h-64">
+        <div className="flex min-h-[650px] justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
       ) : (
@@ -132,18 +134,18 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
 
             const dateKey = formatDateKey(day);
             const data = pnlData[dateKey];
-            const pnl = data ? data.pnl : 0;
-            const count = data ? data.tradeCount : 0;
+            const returns = data ? data.returns : 0;
+            const count = data ? data.count : 0;
             const hasTrade = !!data;
 
             let bgColor = "bg-surface-highlight/20";
             let textColor = "text-secondary";
 
             if (hasTrade) {
-              if (pnl > 0) {
+              if (returns > 0) {
                 bgColor = "bg-green-500/10 border border-green-500/30";
                 textColor = "text-green-500";
-              } else if (pnl < 0) {
+              } else if (returns < 0) {
                 bgColor = "bg-red-500/10 border border-red-500/30";
                 textColor = "text-red-500";
               } else {
@@ -153,31 +155,41 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
             }
 
             return (
-              <div
-                key={day}
-                className={`h-24 rounded-xl p-3 flex flex-col justify-between transition-all hover:scale-105 ${bgColor}`}
-              >
-                <div className="text-right">
-                  <span
-                    className={`text-sm ${
-                      hasTrade ? "text-white" : "text-gray-600"
-                    }`}
-                  >
-                    {day}
-                  </span>
+              <Tooltip title={
+                count !== 0 && <div>
+                  Total returns: {returns.toFixed(2)}%
+                  <br />
+                  Total trades: {count}
+                  <br />
+                  Total PnL: {data?.pnl.toFixed(2)}
                 </div>
-                {hasTrade && (
-                  <div>
-                    <div className={`text-lg font-bold ${textColor}`}>
-                      {pnl > 0 ? "+" : ""}
-                      {pnl.toFixed(2)}
-                    </div>
-                    <div className="text-xs text-secondary/70">
-                      {count} trade{count !== 1 ? "s" : ""}
-                    </div>
+              }>
+                <div
+                  key={day}
+                  className={`h-24 cursor-pointer hover:border-[1px] hover:border-gray-600 rounded-xl p-3 flex flex-col justify-between transition-all hover:scale-105 ${bgColor}`}
+                >
+                  <div className="text-right">
+                    <span
+                      className={`text-sm ${hasTrade ? "text-white" : "text-gray-600"
+                        }`}
+                    >
+                      {day}
+                    </span>
                   </div>
-                )}
-              </div>
+
+                  {hasTrade && (
+                    <div>
+                      <div className={`text-lg font-bold ${textColor}`}>
+                        {returns > 0 ? "+" : "-"}
+                        {returns.toFixed(2)}%
+                      </div>
+                      <div className="text-xs text-secondary/70">
+                        {count} trade{count !== 1 ? "s" : ""}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Tooltip>
             );
           })}
         </div>

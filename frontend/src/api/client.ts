@@ -12,7 +12,7 @@ export const queryClient = new QueryClient({
 
 const BASE_URL = 'http://localhost:5000/api';
 export const BACKEND_URL = 'http://localhost:5000';
-export const fetchTrades = async (page = 1, limit = 20, filters?: { strategy_id?: string; outcome?: string; search?: string }): Promise<TradeResponse> => {
+export const fetchTrades = async (page = 1, limit = 20, filters?: { strategy_id?: string; outcome?: string; search?: string; symbol?: string }): Promise<TradeResponse> => {
   const params = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
@@ -21,6 +21,7 @@ export const fetchTrades = async (page = 1, limit = 20, filters?: { strategy_id?
   if (filters?.strategy_id) params.append('strategy_id', filters.strategy_id);
   if (filters?.outcome) params.append('outcome', filters.outcome);
   if (filters?.search) params.append('search', filters.search);
+  if (filters?.symbol) params.append('symbol', filters.symbol);
 
   const response = await fetch(`${BASE_URL}/trades?${params.toString()}`);
   if (!response.ok) {

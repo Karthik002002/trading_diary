@@ -11,6 +11,151 @@ const router = express.Router();
 
 import { upload } from '../middleware/uploadMiddleware';
 
+const buildTradeQuery = (query: any) => {
+  const { strategy_id, outcome, search, symbol } = query;
+  const mongoQuery: any = {};
+
+  if (strategy_id) {
+    mongoQuery.strategy_id = strategy_id;
+  }
+  if (symbol) {
+    mongoQuery.symbol_id = symbol;
+  }
+  if (outcome) {
+    mongoQuery.outcome = outcome;
+  }
+  if (search) {
+    const searchRegex = { $regex: search, $options: 'i' };
+    mongoQuery.$or = [
+      { entry_reason: searchRegex },
+      { exit_reason: searchRegex },
+      { notes: searchRegex },
+    ];
+  }
+  return mongoQuery;
+};
+
+// Get performance statistics
+router.get('/stats/performance', async (req: Request, res: Response) => {
+  try {
+    const query = buildTradeQuery(req.query);
+
+    const stats = await Trade.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalTrades: { $sum: 1 },
+          wins: { $sum: { $cond: [{ $eq: ['$outcome', 'win'] }, 1, 0] } },
+          losses: { $sum: { $cond: [{ $eq: ['$outcome', 'loss'] }, 1, 0] } },
+          totalPl: { $sum: '$pl' },
+          totalRr: { $sum: '$actual_rr' },
+          avgWin: {
+            $avg: { $cond: [{ $eq: ['$outcome', 'win'] }, '$pl', null] }
+          },
+          avgLoss: {
+            $avg: { $cond: [{ $eq: ['$outcome', 'loss'] }, '$pl', null] }
+          }
+        }
+      }
+    ]);
+
+    if (stats.length === 0) {
+      return res.json({
+        winRate: 0,
+        avgRr: 0,
+        expectancy: 0,
+        totalTrades: 0
+      });
+    }
+
+    const { totalTrades, wins, losses, totalRr, avgWin, avgLoss } = stats[0];
+    const winRate = totalTrades > 0 ? (wins / (wins + losses || 1)) * 100 : 0;
+    const avgRr = totalTrades > 0 ? totalRr / totalTrades : 0;
+
+    // Expectancy = (Win Rate * Avg Win) - (Loss Rate * Avg Loss)
+    // Using absolute value for avgLoss in the formula if it's stored as negative, 
+    // but usually pl for loss is negative. Let's assume pl is negative for losses.
+    // Formula: (Probability of Win * Avg Win) + (Probability of Loss * Avg Loss)
+    const winProb = wins / (wins + losses || 1);
+    const lossProb = losses / (wins + losses || 1);
+    const expectancy = (winProb * (avgWin || 0)) + (lossProb * (avgLoss || 0));
+
+    res.json({
+      winRate: Number(winRate.toFixed(2)),
+      avgRr: Number(avgRr.toFixed(2)),
+      expectancy: Number(expectancy.toFixed(2)),
+      totalTrades
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get execution statistics
+router.get('/stats/execution', async (req: Request, res: Response) => {
+  try {
+    const query = buildTradeQuery(req.query);
+
+    const stats = await Trade.aggregate([
+      { $match: query },
+      {
+        $facet: {
+          executionStats: [
+            {
+              $group: {
+                _id: null,
+                perfectEntries: { $sum: { $cond: [{ $eq: ['$entry_execution', 'perfect'] }, 1, 0] } },
+                perfectExits: { $sum: { $cond: [{ $eq: ['$exit_execution', 'perfect'] }, 1, 0] } },
+                totalTrades: { $sum: 1 }
+              }
+            }
+          ],
+          mistakeStats: [
+            {
+              $group: {
+                _id: null,
+                greedCount: { $sum: { $cond: ['$is_greed', 1, 0] } },
+                fomoCount: { $sum: { $cond: ['$is_fomo', 1, 0] } }
+              }
+            }
+          ],
+          ruleViolations: [
+            { $unwind: '$rule_violations' },
+            {
+              $group: {
+                _id: '$rule_violations',
+                count: { $sum: 1 }
+              }
+            }
+          ]
+        }
+      }
+    ]);
+
+    const execution = stats[0].executionStats[0] || { perfectEntries: 0, perfectExits: 0, totalTrades: 0 };
+    const mistakes = stats[0].mistakeStats[0] || { greedCount: 0, fomoCount: 0 };
+    const ruleViolations = stats[0].ruleViolations.reduce((acc: any, curr: any) => {
+      acc[curr._id] = curr.count;
+      return acc;
+    }, {});
+
+    res.json({
+      efficiency: {
+        entryEfficiency: execution.totalTrades > 0 ? Number(((execution.perfectEntries / execution.totalTrades) * 100).toFixed(2)) : 0,
+        exitEfficiency: execution.totalTrades > 0 ? Number(((execution.perfectExits / execution.totalTrades) * 100).toFixed(2)) : 0,
+      },
+      mistakes: {
+        greed: mistakes.greedCount,
+        fomo: mistakes.fomoCount,
+        ruleViolations
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get P&L for calendar
 router.get('/pnl/calendar', async (req: Request, res: Response) => {
   try {
@@ -35,6 +180,7 @@ router.get('/pnl/calendar', async (req: Request, res: Response) => {
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$trade_date' } },
+          totalReturn: { $sum: '$returns' },
           totalPnl: { $sum: '$pl' },
           count: { $sum: 1 },
         },
@@ -48,6 +194,7 @@ router.get('/pnl/calendar', async (req: Request, res: Response) => {
     const result = trades.map(t => ({
       date: t._id,
       pnl: t.totalPnl,
+      returns: t.totalReturn,
       count: t.count
     }));
 
@@ -102,28 +249,7 @@ router.get('/', async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
 
-    const { strategy_id, outcome, search } = req.query;
-
-    const query: any = {};
-
-    if (strategy_id) {
-      query.strategy_id = strategy_id;
-    }
-
-    if (outcome) {
-      query.outcome = outcome;
-    }
-
-    if (search) {
-      const searchRegex = { $regex: search, $options: 'i' };
-      query.$or = [
-        { entry_reason: searchRegex },
-        { exit_reason: searchRegex },
-        { notes: searchRegex },
-        // If we want to search by symbol name, we'd need to lookup symbol_id, but that is harder without aggregation or population.
-        // For now searching text fields.
-      ];
-    }
+    const query = buildTradeQuery(req.query);
 
     console.log(`Fetching trades page ${page} with limit ${limit}`, query);
 

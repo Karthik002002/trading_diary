@@ -17,6 +17,8 @@ export interface Trade {
   outcome: 'win' | 'loss' | 'neutral';
   entry_price: number;
   exit_price: number;
+  take_profit: number;
+  stop_loss: number;
   entry_id: number | null;
   pl: number | null;
   tags: string[];
@@ -63,7 +65,8 @@ export interface TradeResponse {
 export interface PnlCalendarDay {
   date: string;
   pnl: number;
-  tradeCount: number;
+  returns: number;
+  count: number;
 }
 
 export interface PnlCalendarResponse {

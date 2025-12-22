@@ -74,7 +74,7 @@ const Dashboard: React.FC = () => {
     <div className="container mx-auto p-0">
 
 
-      <div className=" z-10 grid grid-cols-12 gap-4 p-4 rounded-lg items-end bg-transparent ">
+      <div className=" sticky top-2  z-[1000] grid grid-cols-12 gap-4 p-4 rounded-lg items-end bg-slate-900 ">
         <div className="col-span-2">
           <Select
             loading={strategiesLoading}

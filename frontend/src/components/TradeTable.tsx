@@ -30,6 +30,7 @@ const TradeTable: React.FC = () => {
     strategy_id: search.strategy_id,
     outcome: search.outcome,
     search: search.search,
+    symbol: search.symbol,
   };
 
   const strategyMapped: Record<number, string> = {};

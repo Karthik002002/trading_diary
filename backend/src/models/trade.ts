@@ -16,8 +16,22 @@ export interface ITrade extends Document {
   outcome: 'win' | 'loss' | 'neutral';
   entry_price: number;
   exit_price: number;
+  stop_loss: number;
+  take_profit: number;
+  planned_rr: number;
+  actual_rr: number;
   entry_id: number | null;
   pl: number | null;
+  rr: number | null;
+  returns: number | null;
+  is_greed: boolean | null;
+  is_fomo: boolean | null;
+  market_condition: string | null;
+  entry_execution: string | null;
+  exit_execution: string | null;
+  emotional_state: string[] | null;
+  post_trade_thoughts: string | null;
+  rule_violations: string[] | null;
   tags: string[];
 }
 
@@ -37,13 +51,17 @@ const TradeSchema: Schema = new Schema(
     exit_reason: { type: String, required: true },
     outcome: { type: String, enum: ['win', 'loss', 'neutral'], required: true },
     entry_price: { type: Number, required: true },
+    exit_price: { type: Number, required: false },
     stop_loss: { type: Number, required: false },
     take_profit: { type: Number, required: false },
     entry_id: { type: Number, required: false, default: null },
     pl: { type: Number, required: false },
     rr: { type: Number, required: false },
+    planned_rr: { type: Number, required: false },
+    actual_rr: { type: Number, required: false },
     is_greed: { type: Boolean, required: false, default: false },
     is_fomo: { type: Boolean, required: false, default: false },
+    returns: { type: Number, required: false },
     tags: { type: [String], required: false, default: [] },
     market_condition: {
       type: String,
@@ -73,22 +91,72 @@ const TradeSchema: Schema = new Schema(
   }
 );
 
-TradeSchema.pre('save', async function () {
+TradeSchema.pre('save', function () {
   const trade = this as unknown as ITrade;
-  const { entry_price, exit_price, quantity, type, fees } = trade;
-  const feesVal = fees || 0;
 
-  if (entry_price != null && exit_price != null && quantity != null) {
-    let profit = 0;
+  const {
+    entry_price,
+    exit_price,
+    quantity,
+    type,
+    fees = 0,
+    stop_loss,
+    take_profit,
+  } = trade;
 
-    if (type === 'buy') {
-      profit = (exit_price - entry_price) * quantity;
-    } else if (type === 'sell') {
-      profit = (entry_price - exit_price) * quantity;
-    }
-
-    trade.pl = profit - feesVal;
+  // Only calculate when trade is closed
+  if (
+    entry_price == null ||
+    exit_price == null ||
+    quantity == null ||
+    !type
+  ) {
+    return
   }
+
+  // ------------------------
+  // Realized P/L
+  // ------------------------
+  let grossProfit = 0;
+
+  if (type === 'buy') {
+    grossProfit = (exit_price - entry_price) * quantity;
+  } else if (type === 'sell') {
+    grossProfit = (entry_price - exit_price) * quantity;
+  }
+
+  trade.pl = grossProfit - (fees ?? 0);
+
+  // ------------------------
+  // Planned RR
+  // ------------------------
+  if (stop_loss != null && take_profit != null) {
+    const plannedRisk = Math.abs(entry_price - stop_loss);
+    const plannedReward = Math.abs(take_profit - entry_price);
+
+    trade.planned_rr =
+      plannedRisk > 0 ? plannedReward / plannedRisk : 0;
+  } else {
+    trade.planned_rr = 0;
+  }
+
+  // ------------------------
+  // Actual RR
+  // ------------------------
+  if (stop_loss != null) {
+    const actualRisk = Math.abs(entry_price - stop_loss);
+    const actualReward = Math.abs(exit_price - entry_price);
+
+    trade.actual_rr =
+      actualRisk > 0 ? actualReward / actualRisk : 0;
+  } else {
+    trade.actual_rr = 0;
+  }
+
+
+  trade.returns = Number((((exit_price - entry_price) / entry_price) * 100).toFixed(2));
+
+
 });
 
 export default mongoose.model<ITrade>('Trade', TradeSchema);

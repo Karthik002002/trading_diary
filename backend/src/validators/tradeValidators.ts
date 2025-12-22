@@ -9,7 +9,9 @@ export const createTradeValidator = [
     .withMessage('Type must be either buy or sell'),
   body('trade_date').isISO8601().toDate().withMessage('Invalid trade date'),
   body('entry_price').isNumeric().withMessage('Entry price must be a number'),
-  // body('exit_price').isNumeric().withMessage('Exit price must be a number'),
+  body('exit_price').isNumeric().withMessage('Exit price must be a number'),
+  body('stop_loss').isNumeric().optional().withMessage('Stop loss must be a number'),
+  body('take_profit').isNumeric().optional().withMessage('Take profit must be a number'),
   body('outcome')
     .isIn(['win', 'loss', 'neutral'])
     .withMessage('Outcome must be win, loss, or neutral'),

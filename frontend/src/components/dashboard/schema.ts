@@ -9,6 +9,7 @@ export const tradeSchema = z.object({
   trade_date: z.string(),
   confidence_level: z.coerce.number().min(1, "Confidence level must be between 1 and 10").max(10, "Confidence level must be between 1 and 10").optional(),
   entry_price: z.coerce.number().positive(),
+  exit_price: z.coerce.number().positive(),
   stop_loss: z.coerce.number().optional(),
   take_profit: z.coerce.number().optional(),
   entry_reason: z.string().optional(),
