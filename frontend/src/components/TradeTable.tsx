@@ -266,15 +266,23 @@ const ViewTradeModal = ({ trade, open, onClose }: { trade: Trade | null, open: b
         {trade.photo && <img src={`${BACKEND_URL}/${trade.photo}`} alt="trade" />}
       </div>
       <div className="w-1/2">
-        <div className="flex flex-col gap-1">
-          {displaKeyMap.map((item) => (
-            <div className="flex">
-              <div className="w-1/2 font-bold border py-1 px-2">{item.key}</div>
-              <div className="w-1/2 border border-l-0 px-2 py-1">{trade[item.value]}</div>
+        <div className="w-full max-w-xl rounded-lg border border-gray-200 overflow-hidden">
+          {displaKeyMap.map((item, index) => (
+            <div
+              key={item.key}
+              className={`flex text-sm ${index !== displaKeyMap.length - 1 ? "border-b-[1px] border-gray-200" : ""}"
+                }`}
+            >
+              <div className="w-1/2 px-4 py-2 font-medium text-white border-r">
+                {item.key}
+              </div>
+              <div className="w-1/2 px-4 py-2 text-white">
+                {trade[item.value] ?? "-"}
+              </div>
             </div>
           ))}
-
         </div>
+
       </div>
     </div>
 

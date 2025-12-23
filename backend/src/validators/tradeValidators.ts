@@ -51,7 +51,7 @@ export const createTradeValidator = [
   body('exit_reason').notEmpty().withMessage('Exit reason is required'),
   body('photo').optional().isString().withMessage('Photo must be a string URL or path'),
   body('post_trade_thoughts').optional().isString().withMessage('Post trade thoughts must be a string'),
-  body('rule_violations').optional().isString().withMessage('Rule violations must be a string'),
+  body('rule_violations').optional(),
   body('stop_loss').optional().isNumeric().withMessage('Stop loss must be a number'),
   body('take_profit').optional().isNumeric().withMessage('Take profit must be a number'),
 ];

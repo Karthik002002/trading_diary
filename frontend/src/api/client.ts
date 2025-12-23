@@ -83,7 +83,9 @@ export const fetchPnlCalendar = async (month: number, year: number): Promise<Pnl
 };
 
 export const fetchPerformanceMetric = async (filters: Record<string, string>): Promise<PerformanceMetric> => {
-  const response = await fetch(`${BASE_URL}/trades/performance-metric?${new URLSearchParams(filters).toString()}`);
+  const response = await fetch(`${BASE_URL}/trades/stats/performance-metric?${new URLSearchParams(
+    Object.entries(filters).filter(([_, value]) => value !== undefined)
+  ).toString()}`);
   if (!response.ok) throw new Error('Failed to fetch performance metric data');
   return response.json();
 };

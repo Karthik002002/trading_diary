@@ -41,11 +41,11 @@ const CreateTradeModal: React.FC<Props> = ({
   // const { data: strategies } = useStrategies();
   const { data: symbols } = useSymbols();
 
-  const { control, handleSubmit, reset, watch } = useForm<TradeFormValues>({
+  const { control, handleSubmit, reset } = useForm<TradeFormValues>({
     resolver: zodResolver(tradeSchema as any),
     defaultValues: {
       strategy_id: 1,
-      symbol_id: "",
+      symbol_id: 1,
       quantity: 10,
       confidence_level: 8,
       type: "buy",
@@ -67,14 +67,14 @@ const CreateTradeModal: React.FC<Props> = ({
     },
   });
 
-  const watchedData = watch();
+
 
   /** Populate form on edit */
   useEffect(() => {
     if (isOpen && tradeToEdit) {
       reset({
-        strategy_id: tradeToEdit.strategy_id.toString(),
-        symbol_id: tradeToEdit.symbol_id.toString(),
+        strategy_id: tradeToEdit.strategy_id,
+        symbol_id: tradeToEdit.symbol_id,
         quantity: tradeToEdit.quantity,
         confidence_level: tradeToEdit.confidence_level ?? 8,
         type: tradeToEdit.type,
@@ -104,8 +104,8 @@ const CreateTradeModal: React.FC<Props> = ({
     const data = new FormData();
 
     Object.entries(values).forEach(([key, value]) => {
-      if (key === "tags") {
-        data.append("tags", JSON.stringify(value ?? []));
+      if (key === "tags" || key === "rule_violations") {
+        data.append(key, JSON.stringify(value ?? []));
       } else if (value !== undefined && value !== null) {
         data.append(key, String(value));
       }
@@ -146,7 +146,7 @@ const CreateTradeModal: React.FC<Props> = ({
         layout="vertical"
         onFinish={handleSubmit((data) => {
           onSubmit(data as unknown as TradeFormValues);
-        })}
+        }, (error) => { console.log(error) })}
         styles={{
           content: {
             // display: "grid",
@@ -173,9 +173,8 @@ const CreateTradeModal: React.FC<Props> = ({
                   options={symbols?.map((val) => ({
                     label: val.symbol,
                     value: val.id,
-                  }))}
+                  })) ?? []}
                   showSearch
-                  
                 />
               )}
             />

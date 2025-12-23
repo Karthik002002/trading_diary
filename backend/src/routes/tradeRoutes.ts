@@ -10,16 +10,17 @@ import {
 const router = express.Router();
 
 import { upload } from '../middleware/uploadMiddleware';
+import mongoose from 'mongoose';
 
 const buildTradeQuery = (query: any) => {
   const { strategy_id, outcome, search, symbol } = query;
   const mongoQuery: any = {};
 
   if (strategy_id) {
-    mongoQuery.strategy_id = strategy_id;
+    mongoQuery.strategy_id = Number(strategy_id);
   }
   if (symbol) {
-    mongoQuery.symbol_id = symbol;
+    mongoQuery.symbol_id = Number(symbol);
   }
   if (outcome) {
     mongoQuery.outcome = outcome;
@@ -36,10 +37,12 @@ const buildTradeQuery = (query: any) => {
 };
 
 // Get performance statistics
-router.get('/stats/performance', async (req: Request, res: Response) => {
+router.get('/stats/performance-metric', async (req: Request, res: Response) => {
   try {
     const query = buildTradeQuery(req.query);
-
+    if (query._id && !mongoose.Types.ObjectId.isValid(query._id)) {
+      delete query._id;
+    }
     const stats = await Trade.aggregate([
       { $match: query },
       {
@@ -55,7 +58,11 @@ router.get('/stats/performance', async (req: Request, res: Response) => {
           },
           avgLoss: {
             $avg: { $cond: [{ $eq: ['$outcome', 'loss'] }, '$pl', null] }
-          }
+          },
+          avgConfidence: { $avg: '$confidence_level' },
+          stdDevPl: { $stdDevPop: '$pl' },
+          maxPl: { $max: '$pl' },
+          minPl: { $min: '$pl' }
         }
       }
     ]);
@@ -65,18 +72,59 @@ router.get('/stats/performance', async (req: Request, res: Response) => {
         winRate: 0,
         avgRr: 0,
         expectancy: 0,
-        totalTrades: 0
+        totalTrades: 0,
+        avgConfidence: 0,
+        consistencyScore: 0,
+        bestTrade: 0,
+        worstTrade: 0,
+        maxDrawdown: 0
       });
     }
 
-    const { totalTrades, wins, losses, totalRr, avgWin, avgLoss } = stats[0];
+    const {
+      totalTrades,
+      wins,
+      losses,
+      totalRr,
+      avgWin,
+      avgLoss,
+      avgConfidence,
+      stdDevPl,
+      maxPl,
+      minPl
+    } = stats[0];
+
+    // Calculate Max Drawdown %
+    // We use common equity compounding (starting at 100)
+    const tradesForDrawdown = await Trade.find(query)
+      .sort({ trade_date: 1 })
+      .select('returns');
+
+    let currentEquity = 100;
+    let peakEquity = 100;
+    let maxDrawdownPercent = 0;
+
+    tradesForDrawdown.forEach(trade => {
+      const tradeReturn = trade.returns || 0;
+      currentEquity *= (1 + tradeReturn / 100);
+
+      if (currentEquity > peakEquity) {
+        peakEquity = currentEquity;
+      }
+
+      const drawdown = ((peakEquity - currentEquity) / peakEquity) * 100;
+      if (drawdown > maxDrawdownPercent) {
+        maxDrawdownPercent = drawdown;
+      }
+    });
+
+    // If we want drawdown in %, we'd need an initial balance. 
+    // Without it, we'll return the absolute value or relative to peak.
+    // For now, let's return absolute max drawdown.
+
     const winRate = totalTrades > 0 ? (wins / (wins + losses || 1)) * 100 : 0;
     const avgRr = totalTrades > 0 ? totalRr / totalTrades : 0;
 
-    // Expectancy = (Win Rate * Avg Win) - (Loss Rate * Avg Loss)
-    // Using absolute value for avgLoss in the formula if it's stored as negative, 
-    // but usually pl for loss is negative. Let's assume pl is negative for losses.
-    // Formula: (Probability of Win * Avg Win) + (Probability of Loss * Avg Loss)
     const winProb = wins / (wins + losses || 1);
     const lossProb = losses / (wins + losses || 1);
     const expectancy = (winProb * (avgWin || 0)) + (lossProb * (avgLoss || 0));
@@ -85,7 +133,12 @@ router.get('/stats/performance', async (req: Request, res: Response) => {
       winRate: Number(winRate.toFixed(2)),
       avgRr: Number(avgRr.toFixed(2)),
       expectancy: Number(expectancy.toFixed(2)),
-      totalTrades
+      totalTrades,
+      avgConfidence: Number((avgConfidence || 0).toFixed(2)),
+      consistencyScore: Number((stdDevPl || 0).toFixed(2)),
+      bestTrade: Number((maxPl || 0).toFixed(2)),
+      worstTrade: Number((minPl || 0).toFixed(2)),
+      maxDrawdown: Number(maxDrawdownPercent.toFixed(2))
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -93,7 +146,7 @@ router.get('/stats/performance', async (req: Request, res: Response) => {
 });
 
 // Get execution statistics
-router.get('/stats/execution', async (req: Request, res: Response) => {
+router.get('/stats/execution-metric', async (req: Request, res: Response) => {
   try {
     const query = buildTradeQuery(req.query);
 
@@ -301,6 +354,10 @@ router.put(
 
       if (req.file) {
         req.body.photo = req.file.path;
+      }
+
+      if (req.body.rule_violations) {
+        req.body.rule_violations = JSON.parse(req.body.rule_violations ?? []);
       }
 
       Object.assign(trade, req.body);

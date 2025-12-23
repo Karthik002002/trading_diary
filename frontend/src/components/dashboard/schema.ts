@@ -2,8 +2,8 @@
 import { z } from "zod";
 
 export const tradeSchema = z.object({
-  strategy_id: z.string(),
-  symbol_id: z.string().min(1, "Symbol is required"),
+  strategy_id: z.number(),
+  symbol_id: z.number(),
   quantity: z.coerce.number().positive("Quantity must be > 0"),
   type: z.enum(["buy", "sell"]),
   trade_date: z.string(),

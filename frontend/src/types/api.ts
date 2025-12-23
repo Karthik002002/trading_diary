@@ -76,8 +76,13 @@ export interface PnlCalendarResponse {
 }
 
 export interface PerformanceMetric {
-    winRate: number;
-    avgRr: number;
-    expectancy: number;
-    totalTrades: number;
+  winRate: number;
+  avgRr: number;
+  expectancy: number;
+  totalTrades: number;
+  avgConfidence: number;
+  consistencyScore: number;
+  bestTrade: number;
+  worstTrade: number;
+  maxDrawdown: number;
 }

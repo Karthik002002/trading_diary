@@ -1,43 +1,42 @@
 import ReactECharts from "echarts-for-react";
 
-const SpeedoGauge = ({ value = 70 }) => {
+const SpeedoGauge = ({ value = 70, height = 120, width = 220 }: { value: number, height?: number, width?: number }) => {
+  const win = value;
+  const loss = 100 - value;
+
   const option = {
+    tooltip: {
+      trigger: "item",
+      formatter: "{b}: {c}%",
+    },
     series: [
       {
-        type: "gauge",
-        startAngle: 225,
-        endAngle: -45, // 👉 ~270° arc (speedometer look)
-        min: 0,
-        max: 100,
-        progress: {
-          show: true,
-          width: 18,
-        },
-        axisLine: {
-          lineStyle: {
-            width: 18,
-            color: [[1, "#292929ff"]], // background arc
-          },
-        },
-        pointer: {
-          show: false, // ❌ no needle
-        },
-        axisTick: { show: false },
-        splitLine: { show: false },
-        axisLabel: { show: false },
-        detail: {
-          valueAnimation: true,
-          formatter: "{value}%",
-          color: "#bbbbbbff",
-          fontSize: 21,
-          offsetCenter: [0, "10%"],
-        },
+        type: "pie",
+        radius: ["60%", "75%"],
+        center: ["50%", "70%"], // push down for speedo look
+        startAngle: 180,
+        clockwise: true,
+        label: { show: false },
         data: [
           {
-            value,
+            value: win,
+            name: "Win",
+            itemStyle: { color: "#22c55e" },
+          },
+          {
+            value: loss,
+            name: "Loss",
+            itemStyle: { color: "#ef4444" },
+          },
+          {
+            // 👇 hides bottom half
+            value: 100,
+            name: "hidden",
             itemStyle: {
-              color: "#22c55e", // filled arc color
+              color: "transparent",
             },
+            tooltip: { show: false },
+            emphasis: { disabled: true },
           },
         ],
       },
@@ -45,9 +44,8 @@ const SpeedoGauge = ({ value = 70 }) => {
   };
 
   return (
-    <div className="flex flex-row items-center">
-      <h4>Win Ratio</h4>
-      <ReactECharts option={option} style={{ height: 150, width: "200px" }} />
+    <div className="flex flex-col items-center">
+      <ReactECharts option={option} style={{ height, width }} />
     </div>
   );
 };

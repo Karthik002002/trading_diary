@@ -4,7 +4,7 @@ import TradeTable from "../components/TradeTable";
 import CreateTradeModal from "../components/dashboard/CreateTradeModal";
 import { useHotkeys } from "react-hotkeys-hook";
 import PnlCalendar from "../components/PnlCalendar";
-import { Button, Input, Select } from "antd";
+import { Button, Card, Input, Row, Select, Typography } from "antd";
 import { usePerformanceMetrics, useStrategies, useSymbols } from "../hooks/useTrades";
 import { useSearch } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
@@ -43,6 +43,7 @@ const Dashboard: React.FC = () => {
 
   const { data: strategies, isLoading: strategiesLoading } = useStrategies();
   const { data: symbols, isLoading: symbolsLoading } = useSymbols();
+  console.log(filters);
   const { data: performanceMetric, isLoading: performanceMetricLoading } = usePerformanceMetrics({ filters });
 
   useHotkeys("ctrl+m", (e) => {
@@ -80,6 +81,7 @@ const Dashboard: React.FC = () => {
         <div className="col-span-2">
           <Select
             loading={strategiesLoading}
+            allowClear
             options={
               strategies?.map((s: any) => ({ value: s.id, label: s.name })) || []
             }
@@ -100,7 +102,7 @@ const Dashboard: React.FC = () => {
               { id: "neutral", label: "Neutral", value: "neutral" },
             ]}
             value={filters.outcome ? [{ value: filters.outcome }] : []}
-
+            allowClear
             onChange={(params) => {
               handleFilterChange("outcome", params)
             }}
@@ -112,6 +114,7 @@ const Dashboard: React.FC = () => {
 
           <Select
             loading={symbolsLoading}
+            allowClear
             options={
               symbols?.map((s: any) => ({ value: s.id, label: s.name })) || []
             }
@@ -140,7 +143,16 @@ const Dashboard: React.FC = () => {
           <FaPlus />
         </Button>
       </div>
-      <SpeedoGauge value={performanceMetric?.winRate} />
+      <Row>
+        <Card style={{ height: "100px", width: "180px", background: "transparent" }} className=" !border-none flex flex-col justify-center items-center" styles={{ body: { padding: "0px", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", } }}>
+          <Typography.Text>Win Rate</Typography.Text>
+          <SpeedoGauge value={performanceMetric?.winRate ?? 0} height={90} width={100} />
+        </Card>
+        <Card style={{ height: "100px", width: "180px", background: "transparent" }} className=" !border-none flex flex-col justify-center items-center" styles={{ body: { padding: "0px", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", } }}>
+          <Typography.Text>Avg RR</Typography.Text>
+          <div className="font-bold ml-4 text-xl">{performanceMetric?.avgRr ?? 0}</div>
+        </Card>
+      </Row>
       <div className="bg-surface rounded-2xl p-1  shadow-2xl overflow-hidden relative">
         <TradeTable />
       </div>
