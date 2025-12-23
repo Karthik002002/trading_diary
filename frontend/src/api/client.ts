@@ -1,10 +1,10 @@
 import { QueryClient } from '@tanstack/react-query';
-import type { TradeResponse, Strategy, Symbol, PnlCalendarResponse, PnlCalendarDay } from '../types/api';
+import type { TradeResponse, Strategy, Symbol, PnlCalendarDay, PerformanceMetric } from '../types/api';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60, // 1 minute
+      staleTime: 1000 * 60 * 5, // 5 minutes
       retry: 1,
     },
   },
@@ -75,9 +75,16 @@ export const fetchSymbols = async (): Promise<Symbol[]> => {
 };
 
 export const fetchPnlCalendar = async (month: number, year: number): Promise<PnlCalendarDay[]> => {
-    const response = await fetch(`${BASE_URL}/trades/pnl/calendar?month=${month}&year=${year}`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch PnL calendar data');
-    }
-    return response.json();
+  const response = await fetch(`${BASE_URL}/trades/pnl/calendar?month=${month}&year=${year}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch PnL calendar data');
+  }
+  return response.json();
 };
+
+export const fetchPerformanceMetric = async (filters: Record<string, string>): Promise<PerformanceMetric> => {
+  const response = await fetch(`${BASE_URL}/trades/performance-metric?${new URLSearchParams(filters).toString()}`);
+  if (!response.ok) throw new Error('Failed to fetch performance metric data');
+  return response.json();
+};
+

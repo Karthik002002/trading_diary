@@ -5,11 +5,12 @@ import CreateTradeModal from "../components/dashboard/CreateTradeModal";
 import { useHotkeys } from "react-hotkeys-hook";
 import PnlCalendar from "../components/PnlCalendar";
 import { Button, Input, Select } from "antd";
-import { useStrategies, useSymbols } from "../hooks/useTrades";
+import { usePerformanceMetrics, useStrategies, useSymbols } from "../hooks/useTrades";
 import { useSearch } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import { useFilterStore } from "../store/useFilterStore";
 import { FaPlus } from "react-icons/fa";
+import SpeedoGauge from "../components/ui/resuable/chart/GaugeChart";
 
 const Dashboard: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -42,6 +43,7 @@ const Dashboard: React.FC = () => {
 
   const { data: strategies, isLoading: strategiesLoading } = useStrategies();
   const { data: symbols, isLoading: symbolsLoading } = useSymbols();
+  const { data: performanceMetric, isLoading: performanceMetricLoading } = usePerformanceMetrics({ filters });
 
   useHotkeys("ctrl+m", (e) => {
     e.preventDefault();
@@ -138,7 +140,7 @@ const Dashboard: React.FC = () => {
           <FaPlus />
         </Button>
       </div>
-
+      <SpeedoGauge value={performanceMetric?.winRate} />
       <div className="bg-surface rounded-2xl p-1  shadow-2xl overflow-hidden relative">
         <TradeTable />
       </div>

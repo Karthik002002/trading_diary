@@ -74,3 +74,10 @@ export interface PnlCalendarResponse {
   totalPnl: number;
   totalTrades: number;
 }
+
+export interface PerformanceMetric {
+    winRate: number;
+    avgRr: number;
+    expectancy: number;
+    totalTrades: number;
+}

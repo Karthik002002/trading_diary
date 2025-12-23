@@ -100,6 +100,7 @@ const PortfolioManager = () => {
         open={isOpen}
         onCancel={handleClose}
         closable
+        centered
         footer={
           <>
             <Button variant="link" onClick={handleClose}>
@@ -119,6 +120,7 @@ const PortfolioManager = () => {
         <Input
           value={formData.name}
           placeholder="Enter Name"
+          style={{ marginBottom: "10px" }}
           onChange={(e) =>
             setFormData({ ...formData, name: e.currentTarget.value })
           }

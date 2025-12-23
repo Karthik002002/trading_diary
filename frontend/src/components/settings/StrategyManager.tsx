@@ -124,6 +124,7 @@ const StrategyManager = () => {
           onChange={(e) =>
             setFormData({ ...formData, name: e.currentTarget.value })
           }
+          style={{ marginBottom: "10px" }}
         />
 
         <Input

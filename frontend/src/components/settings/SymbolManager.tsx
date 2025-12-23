@@ -116,14 +116,17 @@ const SymbolManager = () => {
         {/* <FormControl label="Symbol"> */}
         <Input
           value={formData.symbol}
+          placeholder="Enter symbol"
           onChange={(e) =>
             setFormData({ ...formData, symbol: e.currentTarget.value })
           }
+          style={{ marginBottom: "10px" }}
         />
         {/* </FormControl> */}
         {/* <FormControl label="Name"> */}
         <Input
           value={formData.name}
+          placeholder="Enter Name"
           onChange={(e) =>
             setFormData({ ...formData, name: e.currentTarget.value })
           }
