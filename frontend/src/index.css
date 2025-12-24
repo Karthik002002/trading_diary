@@ -151,3 +151,40 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Refetch Floating Button Popover Styles */
+.refetch-popover .ant-popover-inner {
+  background-color: #1a1a2e !important;
+  border: 1px solid #3f3f46 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(114, 0, 171, 0.2) !important;
+}
+
+.refetch-popover .ant-popover-title {
+  border-bottom: 1px solid #3f3f46 !important;
+  padding: 12px 16px !important;
+  color: #e5e7eb !important;
+}
+
+.refetch-popover .ant-popover-inner-content {
+  padding: 8px 12px !important;
+}
+
+.refetch-popover .ant-popover-arrow::before {
+  background-color: #1a1a2e !important;
+}
+
+.refetch-popover .ant-popover-arrow::after {
+  border-color: #3f3f46 !important;
+}
+
+.refetch-popover .ant-list-item {
+  border: none !important;
+}
+
+/* Float button hover animation */
+.ant-float-btn:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+

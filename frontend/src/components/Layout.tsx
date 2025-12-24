@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import Sidebar from './Sidebar';
+import RefetchFloatingButton from './RefetchFloatingButton';
 
 const Layout = () => {
   const savedState = localStorage.getItem('isCollapsed');
@@ -20,6 +21,7 @@ const Layout = () => {
       >
         <Outlet />
       </div>
+      <RefetchFloatingButton />
     </div>
   );
 };
