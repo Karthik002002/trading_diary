@@ -180,7 +180,7 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
                   {hasTrade && (
                     <div>
                       <div className={`text-lg font-bold ${textColor}`}>
-                        {returns > 0 ? "+" : "-"}
+                        {returns > 0 ? "+" : ""}
                         {returns.toFixed(2)}%
                       </div>
                       <div className="text-xs text-secondary/70">

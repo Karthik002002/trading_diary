@@ -52,6 +52,7 @@ export const createTradeValidator = [
   body('photo').optional().isString().withMessage('Photo must be a string URL or path'),
   body('post_trade_thoughts').optional().isString().withMessage('Post trade thoughts must be a string'),
   body('rule_violations').optional(),
+  body('timeframe_photos').optional(),
   body('stop_loss').optional().isNumeric().withMessage('Stop loss must be a number'),
   body('take_profit').optional().isNumeric().withMessage('Take profit must be a number'),
 ];
@@ -121,4 +122,5 @@ export const updateTradeValidator = [
   body('is_greed').optional().isBoolean().withMessage('Is greed must be a boolean'),
   body('is_fomo').optional().isBoolean().withMessage('Is fomo must be a boolean'),
   body('photo').optional().isString().withMessage('Photo must be a string URL or path'),
+  body('timeframe_photos').optional(),
 ];

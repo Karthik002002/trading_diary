@@ -260,13 +260,35 @@ router.get('/pnl/calendar', async (req: Request, res: Response) => {
 // Create new trade
 router.post(
   '/',
-  upload.single('photo'),
+  upload.any(),
   createTradeValidator,
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      if (req.file) {
-        req.body.photo = req.file.path;
+      if (req.files && Array.isArray(req.files)) {
+        const files = req.files as Express.Multer.File[];
+
+        const mainPhoto = files.find(f => f.fieldname === 'photo');
+        if (mainPhoto) {
+          req.body.photo = mainPhoto.path;
+        }
+
+        if (req.body.rule_violations && typeof req.body.rule_violations === 'string') {
+          req.body.rule_violations = JSON.parse(req.body.rule_violations);
+        }
+
+        if (req.body.timeframe_photos && typeof req.body.timeframe_photos === 'string') {
+          req.body.timeframe_photos = JSON.parse(req.body.timeframe_photos);
+        }
+
+        if (Array.isArray(req.body.timeframe_photos)) {
+          req.body.timeframe_photos.forEach((tp: any) => {
+            const tfFile = files.find(f => f.fieldname === tp.type);
+            if (tfFile) {
+              tp.photo = tfFile.path;
+            }
+          });
+        }
       }
       const { entry_price, stop_loss, take_profit } = req.body;
 
@@ -313,7 +335,7 @@ router.get('/', async (req: Request, res: Response) => {
     ]);
 
     trades.forEach((trade) => {
-      console.log(trade.tags)
+      return { ...trade, timeframe_photos: trade.timeframe_photos.map(pht => ({ ...pht, photo: `${process.env.BASE_URL}${pht.photo}` })) }
     });
     res.json({
       trades,
@@ -344,7 +366,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 // Update trade
 router.put(
   '/:id',
-  upload.single('photo'),
+  upload.any(),
   updateTradeValidator,
   validateRequest,
   async (req: Request, res: Response) => {
@@ -352,12 +374,30 @@ router.put(
       const trade = await Trade.findById(req.params.id);
       if (!trade) return res.status(404).json({ message: 'Trade not found' });
 
-      if (req.file) {
-        req.body.photo = req.file.path;
-      }
+      if (req.files && Array.isArray(req.files)) {
+        const files = req.files as Express.Multer.File[];
 
-      if (req.body.rule_violations) {
-        req.body.rule_violations = JSON.parse(req.body.rule_violations ?? []);
+        const mainPhoto = files.find(f => f.fieldname === 'photo');
+        if (mainPhoto) {
+          req.body.photo = mainPhoto.path;
+        }
+
+        if (req.body.rule_violations && typeof req.body.rule_violations === 'string') {
+          req.body.rule_violations = JSON.parse(req.body.rule_violations);
+        }
+
+        if (req.body.timeframe_photos && typeof req.body.timeframe_photos === 'string') {
+          req.body.timeframe_photos = JSON.parse(req.body.timeframe_photos);
+        }
+
+        if (Array.isArray(req.body.timeframe_photos)) {
+          req.body.timeframe_photos.forEach((tp: any) => {
+            const tfFile = files.find(f => f.fieldname === tp.type);
+            if (tfFile) {
+              tp.photo = tfFile.path;
+            }
+          });
+        }
       }
 
       Object.assign(trade, req.body);

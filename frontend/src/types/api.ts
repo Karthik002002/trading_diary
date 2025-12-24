@@ -28,6 +28,7 @@ export interface Trade {
   entry_execution: string;
   exit_execution: string;
   emotional_state: string;
+  timeframe_photos: { type: string; photo: string }[];
   createdAt?: string;
   updatedAt?: string;
   post_trade_thoughts?: string;

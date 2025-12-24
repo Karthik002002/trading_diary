@@ -33,6 +33,7 @@ export interface ITrade extends Document {
   post_trade_thoughts: string | null;
   rule_violations: string[] | null;
   tags: string[];
+  timeframe_photos: { type: string; photo: string }[];
 }
 
 const TradeSchema: Schema = new Schema(
@@ -85,6 +86,22 @@ const TradeSchema: Schema = new Schema(
     },
     post_trade_thoughts: { type: String, required: false, default: null },
     rule_violations: { type: [String], required: false, default: [], enum: ["Early Exit", "Late Exit", "Overconfidence", "Fear", "Tilt", "Early Entry", "Late Entry", "Revenge Trade"] },
+    timeframe_photos: {
+      type: [
+        {
+          type: { type: String, required: true },
+          photo: { type: String, required: true },
+        },
+      ],
+      default: [],
+      validate: {
+        validator: function (v: any[]) {
+          const types = v.map((item) => item.type);
+          return new Set(types).size === types.length;
+        },
+        message: 'Duplicate timeframe types are not allowed.',
+      },
+    },
   },
   {
     timestamps: true,

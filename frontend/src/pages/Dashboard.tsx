@@ -4,7 +4,7 @@ import TradeTable from "../components/TradeTable";
 import CreateTradeModal from "../components/dashboard/CreateTradeModal";
 import { useHotkeys } from "react-hotkeys-hook";
 import PnlCalendar from "../components/PnlCalendar";
-import { Button, Card, Input, Row, Select, Typography } from "antd";
+import { Button, Card, Input, Row, Select, Tooltip, Typography } from "antd";
 import { usePerformanceMetrics, useStrategies, useSymbols } from "../hooks/useTrades";
 import { useSearch } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
@@ -145,11 +145,11 @@ const Dashboard: React.FC = () => {
       </div>
       <Row>
         <Card style={{ height: "100px", width: "180px", background: "transparent" }} className=" !border-none flex flex-col justify-center items-center" styles={{ body: { padding: "0px", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", } }}>
-          <Typography.Text>Win Rate</Typography.Text>
+          <Tooltip title={`Win Rate - ${performanceMetric?.totalTrades ?? 0} Trades`}><Typography.Text>Win Rate</Typography.Text></Tooltip>
           <SpeedoGauge value={performanceMetric?.winRate ?? 0} height={90} width={100} />
         </Card>
         <Card style={{ height: "100px", width: "180px", background: "transparent" }} className=" !border-none flex flex-col justify-center items-center" styles={{ body: { padding: "0px", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", } }}>
-          <Typography.Text>Avg RR</Typography.Text>
+          <Tooltip title={`Average Risk Reward - ${performanceMetric?.totalTrades ?? 0} Trades`}><Typography.Text>Avg RR</Typography.Text></Tooltip>
           <div className="font-bold ml-4 text-xl">{performanceMetric?.avgRr ?? 0}</div>
         </Card>
       </Row>

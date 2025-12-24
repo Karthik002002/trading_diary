@@ -2,7 +2,7 @@ import ReactECharts from "echarts-for-react";
 
 const SpeedoGauge = ({ value = 70, height = 120, width = 220 }: { value: number, height?: number, width?: number }) => {
   const win = value;
-  const loss = 100 - value;
+  const loss = (100 - value).toFixed(2);
 
   const option = {
     tooltip: {

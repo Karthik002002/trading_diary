@@ -26,6 +26,10 @@ export const tradeSchema = z.object({
   post_trade_thoughts: z.string().optional(),
   rr: z.coerce.number().optional(),
   rule_violations: z.array(z.enum(["Early Exit", "Late Exit", "Overconfidence", "Fear", "Tilt", "Early Entry", "Late Entry", "Revenge Trade"])).optional(),
+  timeframe_photos: z.array(z.object({
+    type: z.string(),
+    photo: z.any().optional(),
+  })).optional(),
 });
 
 export type TradeFormValues = z.infer<typeof tradeSchema>;
