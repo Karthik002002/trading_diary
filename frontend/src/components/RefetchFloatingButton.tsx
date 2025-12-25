@@ -2,6 +2,7 @@ import { FloatButton, Popover, List, Button, message } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, Database, TrendingUp, Calendar, BarChart3, Briefcase } from 'lucide-react';
 import { useState } from 'react';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 interface RefetchOption {
     key: string;
@@ -81,6 +82,11 @@ const RefetchFloatingButton = () => {
             setLoadingKeys(new Set());
         }
     };
+
+    useHotkeys("ctrl+r", (e) => {
+        e.preventDefault();
+        handleRefetchAll();
+    });
 
     const popoverContent = (
         <div className="min-w-[200px]">

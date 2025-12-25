@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { Fragment, useEffect, useState } from "react";
 import {
   Modal,
   Button,
@@ -11,6 +11,7 @@ import {
   Switch,
   Typography,
   Collapse,
+  Flex,
 } from "antd";
 import { UploadOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useForm, Controller, useFieldArray } from "react-hook-form";
@@ -25,6 +26,8 @@ import {
   type Trade,
 } from "../../hooks/useTrades";
 import { tradeSchema, type TradeFormValues } from "./schema";
+import { FaPaste } from "react-icons/fa";
+import { CreateSymbolModal } from "../settings/CreateSymbolModal";
 
 interface Props {
   isOpen: boolean;
@@ -42,6 +45,10 @@ const CreateTradeModal: React.FC<Props> = ({
   const updateMutation = useUpdateTrade();
   // const { data: strategies } = useStrategies();
   const { data: symbols } = useSymbols();
+
+  // State for symbol creation modal
+  const [isSymbolModalOpen, setIsSymbolModalOpen] = useState(false);
+  const [pendingSymbolFieldChange, setPendingSymbolFieldChange] = useState<((id: number) => void) | null>(null);
 
   const { control, handleSubmit, reset } = useForm<TradeFormValues>({
     resolver: zodResolver(tradeSchema as any),
@@ -62,6 +69,8 @@ const CreateTradeModal: React.FC<Props> = ({
       emotional_state: "calm",
       outcome: "neutral",
       is_greed: false,
+      target_price: 120,
+      stop_loss_price: 100,
       is_fomo: false,
       post_trade_thoughts: "",
       tags: [],
@@ -111,28 +120,38 @@ const CreateTradeModal: React.FC<Props> = ({
 
   /** Submit */
   const onSubmit = (values: TradeFormValues) => {
-    console.log(values);
     const data = new FormData();
+    console.log(data, values)
+
+    // Skip these keys - they need special handling
+    const skipKeys = ["tags", "rule_violations", "photo", "timeframe_photos"];
 
     Object.entries(values).forEach(([key, value]) => {
-      if (key === "tags" || key === "rule_violations") {
-        data.append(key, JSON.stringify(value ?? []));
-      } else if (value !== undefined && value !== null) {
+      if (skipKeys.includes(key)) return;
+
+      if (value !== undefined && value !== null) {
         data.append(key, String(value));
       }
     });
 
-    if (values.photo instanceof File) {
-      data.append("photo", values.photo);
+    // Handle arrays
+    data.append("tags", JSON.stringify(values.tags ?? []));
+    data.append("rule_violations", JSON.stringify(values.rule_violations ?? []));
+
+    // Handle main photo - support both File and Blob (from clipboard paste)
+    if (values.photo instanceof File || values.photo instanceof Blob) {
+      data.append("photo", values.photo, values.photo instanceof File ? values.photo.name : "clipboard-image.png");
     }
 
+    // Handle timeframe photos - support both File and Blob
     if (Array.isArray(values.timeframe_photos)) {
       const photosForBody = values.timeframe_photos.map((tp) => {
-        if (tp.photo instanceof File) {
-          data.append(tp.type, tp.photo);
+        if (tp.photo instanceof File || tp.photo instanceof Blob) {
+          const fileName = tp.photo instanceof File ? tp.photo.name : `${tp.type}-clipboard.png`;
+          data.append(tp.type, tp.photo, fileName);
           return { type: tp.type, photo: "" }; // Backend will fill this
         }
-        return tp; // Existing photo URL
+        return tp; // Existing photo URL or null
       });
       data.append("timeframe_photos", JSON.stringify(photosForBody));
     }
@@ -172,30 +191,62 @@ const CreateTradeModal: React.FC<Props> = ({
         }, (error) => { console.log(error) })}
       >
         <Collapse
-          accordion
-          defaultActiveKey={["trade"]}
+          defaultActiveKey={["trade", "psychological", "photos"]}
           ghost
           expandIconPosition="end"
+          styles={{ root: { maxHeight: "70vh", overflowY: "scroll" } }}
           items={[
             {
               key: "trade",
-              label: <Typography.Title level={5} style={{ margin: 0 }}>Trade Details</Typography.Title>,
+              label: <Typography.Title level={5} className="m-0 border-b-2 border-stone-700 pb-2">Trade Details</Typography.Title>,
               children: (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "12px 16px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: "12px 16px" }}>
                   <Form.Item label="Symbol" required style={{ gridColumn: "span 1" }}>
                     <Controller
                       control={control}
                       name="symbol_id"
                       render={({ field }) => (
-                        <Select
-                          {...field}
-                          placeholder="Select symbol"
-                          options={symbols?.map((val) => ({
-                            label: val.symbol,
-                            value: val.id,
-                          })) ?? []}
-                          showSearch
-                        />
+                        <>
+                          <Select
+                            {...field}
+                            placeholder="Select symbol"
+                            options={[
+                              ...(symbols?.map((val) => ({
+                                label: val.symbol,
+                                value: val.id,
+                              })) ?? []),
+                              {
+                                label: (
+                                  <span className="text-white flex items-center gap-1">
+                                    <PlusOutlined /> Create New
+                                  </span>
+                                ),
+                                value: -1,
+                              },
+                            ]}
+                            showSearch
+                            onChange={(value) => {
+                              if (value === -1) {
+                                setPendingSymbolFieldChange(() => field.onChange);
+                                setIsSymbolModalOpen(true);
+                              } else {
+                                field.onChange(value);
+                              }
+                            }}
+                          />
+                          <CreateSymbolModal
+                            isOpen={isSymbolModalOpen}
+                            onClose={() => {
+                              setIsSymbolModalOpen(false);
+                              setPendingSymbolFieldChange(null);
+                            }}
+                            onSuccess={(newSymbol) => {
+                              if (pendingSymbolFieldChange) {
+                                pendingSymbolFieldChange(newSymbol.id);
+                              }
+                            }}
+                          />
+                        </>
                       )}
                     />
                   </Form.Item>
@@ -267,6 +318,26 @@ const CreateTradeModal: React.FC<Props> = ({
                     />
                   </Form.Item>
 
+                  <Form.Item label="Target Price" style={{ gridColumn: "span 1" }}>
+                    <Controller
+                      control={control}
+                      name="target_price"
+                      render={({ field }) => (
+                        <InputNumber {...field} className="!w-full" step={0.01} />
+                      )}
+                    />
+                  </Form.Item>
+
+                  <Form.Item label="Stop Loss Price" style={{ gridColumn: "span 1" }}>
+                    <Controller
+                      control={control}
+                      name="stop_loss_price"
+                      render={({ field }) => (
+                        <InputNumber {...field} className="!w-full" step={0.01} />
+                      )}
+                    />
+                  </Form.Item>
+
                   <Form.Item label="Outcome" style={{ gridColumn: "span 1" }}>
                     <Controller
                       control={control}
@@ -296,7 +367,7 @@ const CreateTradeModal: React.FC<Props> = ({
                     />
                   </Form.Item>
 
-                  <Form.Item label="Tags" style={{ gridColumn: "span 3" }}>
+                  <Form.Item label="Tags" style={{ gridColumn: "span 1" }}>
                     <Controller
                       control={control}
                       name="tags"
@@ -310,7 +381,7 @@ const CreateTradeModal: React.FC<Props> = ({
                     />
                   </Form.Item>
 
-                  <Form.Item label="Entry Reason" style={{ gridColumn: "span 3" }}>
+                  <Form.Item label="Entry Reason" style={{ gridColumn: "span 2" }}>
                     <Controller
                       control={control}
                       name="entry_reason"
@@ -318,7 +389,7 @@ const CreateTradeModal: React.FC<Props> = ({
                     />
                   </Form.Item>
 
-                  <Form.Item label="Exit Reason" style={{ gridColumn: "span 3" }}>
+                  <Form.Item label="Exit Reason" style={{ gridColumn: "span 2" }}>
                     <Controller
                       control={control}
                       name="exit_reason"
@@ -330,10 +401,10 @@ const CreateTradeModal: React.FC<Props> = ({
             },
             {
               key: "psychological",
-              label: <Typography.Title level={5} style={{ margin: 0 }}>Psychological & Rules</Typography.Title>,
+              label: <Typography.Title level={5} className="m-0 border-b-2 border-stone-700 pb-2">Psychological & Rules</Typography.Title>,
               children: (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "12px 16px" }}>
-                  <Form.Item label="Entry Execution" style={{ gridColumn: "span 2" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: "12px 16px" }}>
+                  <Form.Item label="Entry Execution" style={{ gridColumn: "span 1" }}>
                     <Controller
                       control={control}
                       name="entry_execution"
@@ -347,7 +418,7 @@ const CreateTradeModal: React.FC<Props> = ({
                     />
                   </Form.Item>
 
-                  <Form.Item label="Exit Execution" style={{ gridColumn: "span 2" }}>
+                  <Form.Item label="Exit Execution" style={{ gridColumn: "span 1" }}>
                     <Controller
                       control={control}
                       name="exit_execution"
@@ -361,7 +432,7 @@ const CreateTradeModal: React.FC<Props> = ({
                     />
                   </Form.Item>
 
-                  <Form.Item label="Emotional State" style={{ gridColumn: "span 2" }}>
+                  <Form.Item label="Emotional State" style={{ gridColumn: "span 1" }}>
                     <Controller
                       control={control}
                       name="emotional_state"
@@ -377,7 +448,7 @@ const CreateTradeModal: React.FC<Props> = ({
                     />
                   </Form.Item>
 
-                  <Form.Item label="Greed" style={{ gridColumn: "span 1" }}>
+                  <Form.Item label="Greed" style={{ gridColumn: "span 1" }} className="flex items-center justify-center">
                     <Controller
                       control={control}
                       name="is_greed"
@@ -385,7 +456,7 @@ const CreateTradeModal: React.FC<Props> = ({
                     />
                   </Form.Item>
 
-                  <Form.Item label="FOMO" style={{ gridColumn: "span 1" }}>
+                  <Form.Item label="FOMO" style={{ gridColumn: "span 1" }} className="flex items-center justify-center">
                     <Controller
                       control={control}
                       name="is_fomo"
@@ -393,7 +464,7 @@ const CreateTradeModal: React.FC<Props> = ({
                     />
                   </Form.Item>
 
-                  <Form.Item label="Rule Violations" style={{ gridColumn: "span 4" }}>
+                  <Form.Item label="Rule Violations" style={{ gridColumn: "span 1" }}>
                     <Controller
                       control={control}
                       name="rule_violations"
@@ -417,11 +488,11 @@ const CreateTradeModal: React.FC<Props> = ({
                     />
                   </Form.Item>
 
-                  <Form.Item label="Post Trade Thoughts" style={{ gridColumn: "span 6" }}>
+                  <Form.Item label="Post Trade Thoughts" style={{ gridColumn: "span 2" }}>
                     <Controller
                       control={control}
                       name="post_trade_thoughts"
-                      render={({ field }) => <Input.TextArea {...field} rows={3} />}
+                      render={({ field }) => <Input.TextArea {...field} rows={3} className="!h-full" />}
                     />
                   </Form.Item>
                 </div>
@@ -429,24 +500,42 @@ const CreateTradeModal: React.FC<Props> = ({
             },
             {
               key: "photos",
-              label: <Typography.Title level={5} style={{ margin: 0 }}>Photo Evidence</Typography.Title>,
+              label: <Typography.Title level={5} className="m-0 border-b-2 border-stone-700 pb-2">Photo Evidence</Typography.Title>,
               children: (
-                <div>
+                <Flex gap={20}>
                   <Form.Item label="Main Result Photo">
                     <Controller
                       control={control}
                       name="photo"
                       render={({ field }) => (
-                        <Upload
-                          beforeUpload={(file) => {
-                            field.onChange(file);
-                            return false;
-                          }}
-                          maxCount={1}
-                          accept=".png,.jpg,.jpeg"
-                        >
-                          <Button icon={<UploadOutlined />}>Upload Main Photo</Button>
-                        </Upload>
+                        <Flex>
+                          <Upload
+                            beforeUpload={(file) => {
+                              field.onChange(file);
+                              return false;
+                            }}
+                            maxCount={1}
+                            accept=".png,.jpg,.jpeg"
+                          >
+                            <Button icon={<UploadOutlined />}>Upload Main Photo</Button>
+                          </Upload>
+                          {/* paste from clipboard only images */}
+                          <Button icon={<FaPaste />} className="ml-2" onClick={async () => {
+                            navigator.clipboard.read().then(async (items) => {
+                              for (const item of items) {
+                                const imageType = item.types.find(
+                                  (type) => type === "image/png" || type === "image/jpeg"
+                                );
+                                if (imageType) {
+                                  const blob = await item.getType(imageType);
+                                  field.onChange(blob);
+                                  break;
+                                }
+                              }
+                            });
+
+                          }}></Button>
+                        </Flex>
                       )}
                     />
                   </Form.Item>
@@ -484,18 +573,35 @@ const CreateTradeModal: React.FC<Props> = ({
                               control={control}
                               name={`timeframe_photos.${index}.photo`}
                               render={({ field: uploadField }) => (
-                                <Upload
-                                  beforeUpload={(file) => {
-                                    uploadField.onChange(file);
-                                    return false;
-                                  }}
-                                  maxCount={1}
-                                  accept=".png,.jpg,.jpeg"
-                                >
-                                  <Button icon={<UploadOutlined />} size="small" className="w-full">
-                                    {uploadField.value ? "Change" : "Select Photo"}
-                                  </Button>
-                                </Upload>
+                                <Flex gap={16}>
+                                  <Upload
+                                    beforeUpload={(file) => {
+                                      uploadField.onChange(file);
+                                      return false;
+                                    }}
+                                    maxCount={1}
+                                    accept=".png,.jpg,.jpeg"
+                                  >
+                                    <Button icon={<UploadOutlined />} size="small" className="w-full">
+                                      {uploadField.value ? "Change" : "Select Photo"}
+                                    </Button>
+                                  </Upload>
+                                  <Button icon={<FaPaste />} size="small" className="w-full" onClick={async () => {
+                                    navigator.clipboard.read().then(async (items) => {
+                                      for (const item of items) {
+                                        const imageType = item.types.find(
+                                          (type) => type === "image/png" || type === "image/jpeg"
+                                        );
+                                        if (imageType) {
+                                          const blob = await item.getType(imageType);
+                                          uploadField.onChange(blob);
+                                          break;
+                                        }
+                                      }
+                                    });
+
+                                  }}></Button>
+                                </Flex>
                               )}
                             />
                           </Form.Item>
@@ -521,7 +627,7 @@ const CreateTradeModal: React.FC<Props> = ({
                       </Button>
                     </div>
                   </div>
-                </div>
+                </Flex>
               ),
             },
           ]}

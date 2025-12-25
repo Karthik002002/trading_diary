@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Icon } from "./ui/Icon";
 import { usePnlCalendar } from "../hooks/useTrades";
-import { Tooltip } from "antd";
+import { DatePicker, Tooltip } from "antd";
+import dayjs from "dayjs";
 
 interface CalendarProps { }
 
@@ -95,7 +96,8 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
             <Icon name="left-arrow" size={{ height: 20, width: 20 }} />
           </button>
           <span className="text-lg font-semibold min-w-[140px] text-center text-white cursor-pointer">
-            {monthNames[month]} {year}
+            {/* {monthNames[month]} {year} */}
+            <DatePicker picker="month" value={dayjs(currentDate)} suffixIcon={null} onChange={(date) => setCurrentDate(date?.toDate() || new Date())} format="MMMM-YYYY" variant="borderless" className="m-0" allowClear={false} styles={{ root: { width: "140px" } }} />
           </span>
           <button
             onClick={nextMonth}

@@ -21,23 +21,23 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
             <nav className="flex-1 p-3 space-y-2">
                 <Link
                     to="/"
-                    className="flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary  group border border-transparent [&.active]:border-primary/20"
+                    className="flex items-center space-x-3 py-3 px-2  rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary  group border border-transparent [&.active]:border-primary/20"
                     title={isCollapsed ? "Dashboard" : ""}
                 >
                     <div className={classNames("min-w-[20px] flex ")}>
                         <Icon name={activeLocation.pathname === "/" ? "home-active" : "home"} size={{ height: 20, width: 20 }} />
                     </div>
-                    {!isCollapsed && <span className="font-medium">Dashboard</span>}
+                    {!isCollapsed && <span className={`font-medium ${activeLocation.pathname === "/" ? "text-violet-800" : "text-white"}`}>Dashboard</span>}
                 </Link>
                 <Link
                     to="/settings"
-                    className="flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20"
+                    className={`flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20`}
                     title={isCollapsed ? "Settings" : ""}
                 >
                     <div className="min-w-[20px] flex justify-center">
                         <Icon name={activeLocation.pathname === "/settings" ? "settings-active" : "settings"} size={{ height: 20, width: 20 }} />
                     </div>
-                    {!isCollapsed && <span className="font-medium">Settings</span>}
+                    {!isCollapsed && <span className={`font-medium ${activeLocation.pathname === "/settings" ? "text-violet-800" : "text-white"}`}>Settings</span>}
                 </Link>
             </nav>
             <div className="p-4 border-t border-border border-gray-700 text-xs text-secondary text-center truncate font-mono">

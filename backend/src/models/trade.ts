@@ -171,7 +171,16 @@ TradeSchema.pre('save', function () {
   }
 
 
-  trade.returns = Number((((exit_price - entry_price) / entry_price) * 100).toFixed(2));
+  // ------------------------
+  // Returns % - must account for trade type
+  // ------------------------
+  let returnPercent = 0;
+  if (type === 'buy') {
+    returnPercent = ((exit_price - entry_price) / entry_price) * 100;
+  } else if (type === 'sell') {
+    returnPercent = ((entry_price - exit_price) / entry_price) * 100;
+  }
+  trade.returns = Number(returnPercent.toFixed(2));
 
 
 });
