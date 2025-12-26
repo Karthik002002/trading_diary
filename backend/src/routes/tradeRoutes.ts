@@ -61,6 +61,7 @@ router.get("/stats/performance-metric", async (req: Request, res: Response) => {
 		}
 		const stats = await Trade.aggregate([
 			{ $match: query },
+
 			{
 				$group: {
 					_id: null,
@@ -68,6 +69,7 @@ router.get("/stats/performance-metric", async (req: Request, res: Response) => {
 					wins: { $sum: { $cond: [{ $eq: ["$outcome", "win"] }, 1, 0] } },
 					losses: { $sum: { $cond: [{ $eq: ["$outcome", "loss"] }, 1, 0] } },
 					totalPl: { $sum: "$pl" },
+					totalReturns: { $sum: "$returns" },
 					totalRr: { $sum: "$actual_rr" },
 					avgWin: {
 						$avg: { $cond: [{ $eq: ["$outcome", "win"] }, "$pl", null] },
@@ -79,6 +81,8 @@ router.get("/stats/performance-metric", async (req: Request, res: Response) => {
 					stdDevPl: { $stdDevPop: "$pl" },
 					maxPl: { $max: "$pl" },
 					minPl: { $min: "$pl" },
+					maxReturn: { $max: "$returns" },
+					minReturn: { $min: "$returns" },
 				},
 			},
 		]);
@@ -94,6 +98,8 @@ router.get("/stats/performance-metric", async (req: Request, res: Response) => {
 				bestTrade: 0,
 				worstTrade: 0,
 				maxDrawdown: 0,
+				totalPnl: 0,
+				totalReturns: 0,
 			});
 		}
 
@@ -102,6 +108,8 @@ router.get("/stats/performance-metric", async (req: Request, res: Response) => {
 			wins,
 			losses,
 			totalRr,
+			totalPl,
+			totalReturns,
 			avgWin,
 			avgLoss,
 			avgConfidence,
@@ -119,10 +127,12 @@ router.get("/stats/performance-metric", async (req: Request, res: Response) => {
 		let currentEquity = 100;
 		let peakEquity = 100;
 		let maxDrawdownPercent = 0;
+		let totalPnl = 0;
 
 		tradesForDrawdown.forEach((trade) => {
 			const tradeReturn = trade.returns || 0;
 			currentEquity *= 1 + tradeReturn / 100;
+			totalPnl += trade.returns || 0;
 
 			if (currentEquity > peakEquity) {
 				peakEquity = currentEquity;
@@ -150,11 +160,14 @@ router.get("/stats/performance-metric", async (req: Request, res: Response) => {
 			avgRr: Number(avgRr.toFixed(2)),
 			expectancy: Number(expectancy.toFixed(2)),
 			totalTrades,
+			totalReturns: Number(totalReturns.toFixed(2)),
+			totalPnl: Number(totalPl.toFixed(2)),
 			avgConfidence: Number((avgConfidence || 0).toFixed(2)),
 			consistencyScore: Number((stdDevPl || 0).toFixed(2)),
 			bestTrade: Number((maxPl || 0).toFixed(2)),
 			worstTrade: Number((minPl || 0).toFixed(2)),
 			maxDrawdown: Number(maxDrawdownPercent.toFixed(2)),
+			stats,
 		});
 	} catch (error: any) {
 		res.status(500).json({ message: error.message });

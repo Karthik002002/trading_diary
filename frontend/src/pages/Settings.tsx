@@ -1,10 +1,22 @@
-import { Button, Form, Input, Tabs } from "antd";
+import {
+	Button,
+	Checkbox,
+	Form,
+	Input,
+	message,
+	Switch,
+	Tabs,
+	Tooltip,
+} from "antd";
 import { useState } from "react";
 
 import PortfolioManager from "../components/settings/PortfolioManager";
 import StrategyManager from "../components/settings/StrategyManager";
 import SymbolManager from "../components/settings/SymbolManager";
-import { usePreferenceStore } from "../store/perferenceStore";
+import {
+	usePreferenceStore,
+	type TDashboardDisplayState,
+} from "../store/preferenceStore";
 
 const Settings = () => {
 	const [activeKey, setActiveKey] = useState<string>("general");
@@ -13,7 +25,7 @@ const Settings = () => {
 
 	const handleSavePreferences = () => {
 		setDefaultQuantity(defaultQty);
-		alert("Preferences saved!");
+		message.success("Preferences saved!");
 	};
 
 	const items = [
@@ -21,20 +33,24 @@ const Settings = () => {
 			key: "general",
 			label: "General",
 			children: (
-				<div className="p-2 max-w-md">
-					<h2 className="text-xl font-semibold mb-4">Preferences</h2>
-
+				<div className="p-2 max-w-full">
+					<DashboardPreference />
 					<Form layout="vertical">
 						<Form.Item label="Default Trade Quantity">
 							<Input
 								value={defaultQty}
 								onChange={(e) => setDefaultQty(e.target.value)}
 								type="number"
+								className="max-w-[200px]"
 								placeholder="Enter default quantity"
 							/>
 						</Form.Item>
 
-						<Button type="primary" onClick={handleSavePreferences}>
+						<Button
+							type="primary"
+							disabled={defaultQty === defaultQuantity}
+							onClick={handleSavePreferences}
+						>
 							Save Preferences
 						</Button>
 					</Form>
@@ -81,7 +97,7 @@ const Settings = () => {
 				</p>
 			</div>
 
-			<div className="bg-surface rounded-2xl p-2 pt-3 border border-gray-700 shadow-2xl">
+			<div className="bg-surface rounded-2xl p-2 pt-0 border border-gray-700 shadow-2xl">
 				<Tabs
 					activeKey={activeKey}
 					onChange={setActiveKey}
@@ -94,3 +110,48 @@ const Settings = () => {
 };
 
 export default Settings;
+
+const DashboardPreference = () => {
+	const { dashboardDisplayState, updateDashboardDisplayState } =
+		usePreferenceStore();
+	const displayData = Object.entries(dashboardDisplayState).map((value) => ({
+		label: value[0],
+		value: value[1],
+	}));
+	return (
+		<div className="p-2 w-full">
+			<h2 className="text-xl font-semibold mb-4">Dashboard Preferences</h2>
+
+			<Form layout="vertical" className="grid grid-cols-16 gap-4">
+				{/* <Form.Item label="Dashboard Display State">
+          <Checkbox
+            options={displayData}
+            value={Object.values(dashboardDisplayState)}
+            onChange={(e) => updateDashboardDisplayState(e.target.value)}
+          />
+        </Form.Item> */}
+				{displayData.map((item) => (
+					<Form.Item
+						key={item.label}
+						className="capitalize"
+						label={
+							<Tooltip title={item.label} placement="top">
+								{item.label}
+							</Tooltip>
+						}
+					>
+						<Switch
+							checked={item.value}
+							onChange={(e) =>
+								updateDashboardDisplayState(
+									item.label as TDashboardDisplayState,
+									e,
+								)
+							}
+						/>
+					</Form.Item>
+				))}
+			</Form>
+		</div>
+	);
+};

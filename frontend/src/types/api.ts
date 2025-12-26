@@ -85,5 +85,7 @@ export interface PerformanceMetric {
 	consistencyScore: number;
 	bestTrade: number;
 	worstTrade: number;
+	totalPnl: number;
+	totalReturns: number;
 	maxDrawdown: number;
 }

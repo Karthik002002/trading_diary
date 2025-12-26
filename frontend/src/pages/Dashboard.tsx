@@ -16,6 +16,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useFilterStore } from "../store/useFilterStore";
 import { FaPlus } from "react-icons/fa";
 import SpeedoGauge from "../components/ui/resuable/chart/GaugeChart";
+import { usePreferenceStore } from "../store/preferenceStore";
 
 const Dashboard: React.FC = () => {
 	const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +24,7 @@ const Dashboard: React.FC = () => {
 	const search: any = useSearch({ from: "/" });
 	const navigate = useNavigate();
 	const setStoreFilters = useFilterStore((state) => state.setFilters);
-
+	const { dashboardDisplayState } = usePreferenceStore();
 	const filters = {
 		strategy_id: search.strategy_id,
 		outcome: search.outcome,
@@ -61,26 +62,25 @@ const Dashboard: React.FC = () => {
 	const { data: symbols, isLoading: symbolsLoading } = useSymbols();
 	const { data: portfolios, isLoading: portfoliosLoading } = usePortfolios();
 	const { data: tagsData } = useTags();
-	const updated = useRef(true);
-	const { data: performanceMetric, isLoading: performanceMetricLoading } =
-		usePerformanceMetrics({ filters });
+	// const updated = useRef(true);
+	const { data: performanceMetric } = usePerformanceMetrics({ filters });
 
-	useEffect(() => {
-		if (updated.current) {
-			const firstStrategy = strategies?.[0].id;
-			const firstPortfolio = portfolios?.[0].id;
-			if (firstStrategy && firstPortfolio) {
-				navigate({
-					search: {
-						...search,
-						strategy_id: firstStrategy,
-						portfolio_id: firstPortfolio,
-					},
-				});
-				updated.current = false;
-			}
-		}
-	}, [strategies, performanceMetric, portfolios]);
+	// useEffect(() => {
+	//   if (updated.current) {
+	//     const firstStrategy = strategies?.[0].id;
+	//     const firstPortfolio = portfolios?.[0].id;
+	//     if (firstStrategy && firstPortfolio) {
+	//       navigate({
+	//         search: {
+	//           ...search,
+	//           strategy_id: firstStrategy,
+	//           portfolio_id: firstPortfolio,
+	//         },
+	//       });
+	//       updated.current = false;
+	//     }
+	//   }
+	// }, [strategies, performanceMetric, portfolios]);
 	useHotkeys("ctrl+m", (e) => {
 		e.preventDefault();
 		setIsOpen(true);
@@ -224,52 +224,58 @@ const Dashboard: React.FC = () => {
 				</Button>
 			</div>
 			<Row>
-				<Card
-					style={{ height: "100px", width: "180px", background: "transparent" }}
-					className=" !border-none flex flex-col justify-center items-center"
-					styles={{
-						body: {
-							padding: "0px",
-							display: "flex",
-							flexDirection: "row",
-							alignItems: "center",
-							justifyContent: "center",
-						},
-					}}
-				>
-					<Tooltip
-						title={`Win Rate - ${performanceMetric?.totalTrades ?? 0} Trades`}
+				{dashboardDisplayState.winRate && (
+					<Card
+						style={{
+							height: "100px",
+							width: "180px",
+							background: "transparent",
+						}}
+						className=" !border-none flex flex-col justify-center items-center"
+						styles={{
+							body: {
+								padding: "0px",
+								display: "flex",
+								flexDirection: "row",
+								alignItems: "center",
+								justifyContent: "center",
+							},
+						}}
 					>
-						<Typography.Text>Win Rate</Typography.Text>
-					</Tooltip>
-					<SpeedoGauge
-						value={performanceMetric?.winRate ?? 0}
-						height={90}
-						width={100}
+						<Tooltip
+							title={`Win Rate - ${performanceMetric?.totalTrades ?? 0} Trades`}
+						>
+							<Typography.Text>Win Rate</Typography.Text>
+						</Tooltip>
+						<SpeedoGauge
+							value={performanceMetric?.winRate ?? 0}
+							height={90}
+							width={100}
+						/>
+					</Card>
+				)}
+
+				{dashboardDisplayState.avgRR && (
+					<RenderCard
+						title="Avg RR"
+						data={performanceMetric?.avgRr ?? 0}
+						tooltip={`Average Risk Reward - ${performanceMetric?.totalTrades ?? 0} Trades`}
 					/>
-				</Card>
-				<Card
-					style={{ height: "100px", width: "180px", background: "transparent" }}
-					className=" !border-none flex flex-col justify-center items-center"
-					styles={{
-						body: {
-							padding: "0px",
-							display: "flex",
-							flexDirection: "row",
-							alignItems: "center",
-							justifyContent: "center",
-						},
-					}}
-				>
-					<Tooltip
-						title={`Average Risk Reward - ${performanceMetric?.totalTrades ?? 0} Trades`}
-					>
-						<Typography.Text>Avg RR</Typography.Text>
-					</Tooltip>
-					<div className="font-bold ml-4 text-xl">
-						{performanceMetric?.avgRr ?? 0}
-					</div>
-				</Card>
+				)}
+				{dashboardDisplayState.totalReturns && (
+					<RenderCard
+						title="Total Rtn"
+						data={`${performanceMetric?.totalReturns ?? 0}%`}
+						tooltip={`Total Returns - ${performanceMetric?.totalTrades ?? 0} Trades`}
+					/>
+				)}
+				{dashboardDisplayState.maxDrawdown && (
+					<RenderCard
+						title="Max DD"
+						data={`-${performanceMetric?.maxDrawdown ?? 0}%`}
+						tooltip={`Max Drawdown - ${performanceMetric?.totalTrades ?? 0} Trades`}
+					/>
+				)}
 			</Row>
 			<div className="bg-surface rounded-2xl p-1  shadow-2xl overflow-hidden relative">
 				<TradeTable />
@@ -290,3 +296,34 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
+
+const RenderCard = ({
+	title,
+	data,
+	tooltip,
+}: {
+	title: string;
+	data: string | number;
+	tooltip: string;
+}) => {
+	return (
+		<Card
+			style={{ height: "100px", width: "180px", background: "transparent" }}
+			className=" !border-none flex flex-col justify-center items-center"
+			styles={{
+				body: {
+					padding: "0px",
+					display: "flex",
+					flexDirection: "row",
+					alignItems: "center",
+					justifyContent: "center",
+				},
+			}}
+		>
+			<Tooltip title={tooltip}>
+				<Typography.Text>{title}</Typography.Text>
+			</Tooltip>
+			<div className="font-bold ml-4 text-xl">{data}</div>
+		</Card>
+	);
+};
