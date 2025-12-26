@@ -1,16 +1,16 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITag extends Document {
-    name: string;
+	name: string;
 }
 
 const TagSchema: Schema = new Schema(
-    {
-        name: { type: String, required: true, unique: true, trim: true },
-    },
-    {
-        timestamps: true,
-    }
+	{
+		name: { type: String, required: true, unique: true, trim: true },
+	},
+	{
+		timestamps: true,
+	},
 );
 
-export default mongoose.model<ITag>('Tag', TagSchema);
+export default mongoose.model<ITag>("Tag", TagSchema);
