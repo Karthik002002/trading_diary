@@ -20,11 +20,11 @@ import dayjs from "dayjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useCreateTrade,
-  // useStrategies,
   useSymbols,
   useUpdateTrade,
   type Trade,
 } from "../../hooks/useTrades";
+import { useStrategies, usePortfolios, useTags } from "../../hooks/useResources";
 import { tradeSchema, type TradeFormValues } from "./schema";
 import { FaPaste } from "react-icons/fa";
 import { CreateSymbolModal } from "../settings/CreateSymbolModal";
@@ -43,8 +43,10 @@ const CreateTradeModal: React.FC<Props> = ({
 }) => {
   const createMutation = useCreateTrade();
   const updateMutation = useUpdateTrade();
-  // const { data: strategies } = useStrategies();
+  const { data: strategies } = useStrategies();
+  const { data: portfolios } = usePortfolios();
   const { data: symbols } = useSymbols();
+  const { data: tagsData } = useTags();
 
   // State for symbol creation modal
   const [isSymbolModalOpen, setIsSymbolModalOpen] = useState(false);
@@ -54,6 +56,7 @@ const CreateTradeModal: React.FC<Props> = ({
     resolver: zodResolver(tradeSchema as any),
     defaultValues: {
       strategy_id: 1,
+      portfolio_id: null,
       symbol_id: 1,
       quantity: 10,
       confidence_level: 8,
@@ -61,6 +64,8 @@ const CreateTradeModal: React.FC<Props> = ({
       trade_date: dayjs().format("YYYY-MM-DD"),
       entry_price: 100,
       exit_price: 120,
+      take_profit: 150,
+      stop_loss: 110,
       entry_reason: "",
       exit_reason: "",
       market_condition: "trending",
@@ -69,13 +74,12 @@ const CreateTradeModal: React.FC<Props> = ({
       emotional_state: "calm",
       outcome: "neutral",
       is_greed: false,
-      target_price: 120,
-      stop_loss_price: 100,
       is_fomo: false,
       post_trade_thoughts: "",
       tags: [],
       rule_violations: [],
       timeframe_photos: [{ type: "30m", photo: null }],
+      status: "NIN", // Default to completed
     },
   });
 
@@ -91,6 +95,7 @@ const CreateTradeModal: React.FC<Props> = ({
     if (isOpen && tradeToEdit) {
       reset({
         strategy_id: tradeToEdit.strategy_id,
+        portfolio_id: tradeToEdit.portfolio_id,
         symbol_id: tradeToEdit.symbol_id,
         quantity: tradeToEdit.quantity,
         confidence_level: tradeToEdit.confidence_level ?? 8,
@@ -98,18 +103,21 @@ const CreateTradeModal: React.FC<Props> = ({
         trade_date: dayjs(tradeToEdit.trade_date).format("YYYY-MM-DD"),
         entry_price: tradeToEdit.entry_price,
         exit_price: tradeToEdit.exit_price,
+        take_profit: tradeToEdit.take_profit,
+        stop_loss: tradeToEdit.stop_loss,
         entry_reason: tradeToEdit.entry_reason ?? "",
         exit_reason: tradeToEdit.exit_reason ?? "",
         outcome: tradeToEdit.outcome ?? "neutral",
         is_greed: tradeToEdit.is_greed ?? false,
         is_fomo: tradeToEdit.is_fomo ?? false,
-        tags: tradeToEdit.tags ?? [],
+        tags: tradeToEdit.tags?.map((t: any) => typeof t === 'string' ? t : t.name) ?? [],
         rule_violations:
           (tradeToEdit.rule_violations as unknown as TradeFormValues["rule_violations"]) ??
           [],
         timeframe_photos: tradeToEdit.timeframe_photos?.length > 0
           ? tradeToEdit.timeframe_photos.map(tp => ({ type: tp.type, photo: tp.photo }))
           : [{ type: "30m", photo: null }],
+        status: (tradeToEdit as any).status ?? "NIN",
       });
     }
 
@@ -122,7 +130,7 @@ const CreateTradeModal: React.FC<Props> = ({
   const onSubmit = (values: TradeFormValues) => {
     const data = new FormData();
     console.log(data, values)
-
+    
     // Skip these keys - they need special handling
     const skipKeys = ["tags", "rule_violations", "photo", "timeframe_photos"];
 
@@ -144,15 +152,23 @@ const CreateTradeModal: React.FC<Props> = ({
     }
 
     // Handle timeframe photos - support both File and Blob
+    // Only include entries that have an actual photo (new upload or existing URL)
     if (Array.isArray(values.timeframe_photos)) {
-      const photosForBody = values.timeframe_photos.map((tp) => {
+      const photosForBody: { type: string; photo: string }[] = [];
+
+      values.timeframe_photos.forEach((tp) => {
         if (tp.photo instanceof File || tp.photo instanceof Blob) {
+          // New file upload
           const fileName = tp.photo instanceof File ? tp.photo.name : `${tp.type}-clipboard.png`;
           data.append(tp.type, tp.photo, fileName);
-          return { type: tp.type, photo: "" }; // Backend will fill this
+          photosForBody.push({ type: tp.type, photo: "" }); // Backend will fill this path
+        } else if (typeof tp.photo === 'string' && tp.photo.length > 0) {
+          // Existing photo URL (when editing)
+          photosForBody.push({ type: tp.type, photo: tp.photo });
         }
-        return tp; // Existing photo URL or null
+        // Skip entries where photo is null/undefined/empty - don't include them
       });
+
       data.append("timeframe_photos", JSON.stringify(photosForBody));
     }
 
@@ -200,7 +216,55 @@ const CreateTradeModal: React.FC<Props> = ({
               key: "trade",
               label: <Typography.Title level={5} className="m-0 border-b-2 border-stone-700 pb-2">Trade Details</Typography.Title>,
               children: (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: "12px 16px" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                    gap: "12px 16px",
+                  }}
+                  className="auto-cols-auto"
+                >
+
+                  <Form.Item label="Strategy" required style={{ gridColumn: "span 1" }}>
+                    <Controller
+                      control={control}
+                      name="strategy_id"
+                      render={({ field }) => (
+                        <Select
+                          {...field}
+                          placeholder="Select strategy"
+                          showSearch
+                          optionFilterProp="label"
+                          options={strategies?.map((val: any) => ({
+                            label: val.name,
+                            value: val.id,
+                          })) ?? []}
+                        />
+                      )}
+                    />
+                  </Form.Item>
+
+                  <Form.Item label="Portfolio" required style={{ gridColumn: "span 1" }}>
+                    <Controller
+                      control={control}
+                      name="portfolio_id"
+                      render={({ field }) => (
+                        <Select
+                          {...field}
+                          placeholder="Select portfolio"
+                          showSearch
+                          allowClear
+                          optionFilterProp="label"
+                          options={portfolios?.map((val: any) => ({
+                            label: val.name,
+                            value: val.id,
+                          })) ?? []}
+                          style={{ maxWidth: "150px" }}
+                        />
+                      )}
+                    />
+                  </Form.Item>
+
                   <Form.Item label="Symbol" required style={{ gridColumn: "span 1" }}>
                     <Controller
                       control={control}
@@ -251,6 +315,8 @@ const CreateTradeModal: React.FC<Props> = ({
                     />
                   </Form.Item>
 
+
+
                   <Form.Item label="Date" style={{ gridColumn: "span 1" }}>
                     <Controller
                       control={control}
@@ -288,15 +354,6 @@ const CreateTradeModal: React.FC<Props> = ({
                     />
                   </Form.Item>
 
-                  <Form.Item label="Confidence" style={{ gridColumn: "span 1" }}>
-                    <Controller
-                      control={control}
-                      name="confidence_level"
-                      render={({ field }) => (
-                        <InputNumber {...field} className="!w-full" min={1} max={10} />
-                      )}
-                    />
-                  </Form.Item>
 
                   <Form.Item label="Entry Price" required style={{ gridColumn: "span 1" }}>
                     <Controller
@@ -321,7 +378,7 @@ const CreateTradeModal: React.FC<Props> = ({
                   <Form.Item label="Target Price" style={{ gridColumn: "span 1" }}>
                     <Controller
                       control={control}
-                      name="target_price"
+                      name="take_profit"
                       render={({ field }) => (
                         <InputNumber {...field} className="!w-full" step={0.01} />
                       )}
@@ -331,9 +388,34 @@ const CreateTradeModal: React.FC<Props> = ({
                   <Form.Item label="Stop Loss Price" style={{ gridColumn: "span 1" }}>
                     <Controller
                       control={control}
-                      name="stop_loss_price"
+                      name="stop_loss"
                       render={({ field }) => (
                         <InputNumber {...field} className="!w-full" step={0.01} />
+                      )}
+                    />
+                  </Form.Item>
+
+                  <Form.Item label="Status" style={{ gridColumn: "span 1" }}>
+                    <Controller
+                      control={control}
+                      name="status"
+                      render={({ field }) => (
+                        <div className="flex items-center gap-2 mt-1">
+                          <Switch
+                            checked={field.value === "IN"}
+                            onChange={(checked) => field.onChange(checked ? "IN" : "NIN")}
+                          />
+                          <span>{field.value === "IN" ? "Ongoing" : "Completed"}</span>
+                        </div>
+                      )}
+                    />
+                  </Form.Item>
+                  <Form.Item label="Confidence" style={{ gridColumn: "span 1" }}>
+                    <Controller
+                      control={control}
+                      name="confidence_level"
+                      render={({ field }) => (
+                        <InputNumber {...field} className="!w-full" min={1} max={10} />
                       )}
                     />
                   </Form.Item>
@@ -376,6 +458,7 @@ const CreateTradeModal: React.FC<Props> = ({
                           mode="tags"
                           {...field}
                           placeholder="Add tags"
+                          options={tagsData?.map((t: any) => ({ label: t.name, value: t.name }))}
                         />
                       )}
                     />
@@ -403,7 +486,14 @@ const CreateTradeModal: React.FC<Props> = ({
               key: "psychological",
               label: <Typography.Title level={5} className="m-0 border-b-2 border-stone-700 pb-2">Psychological & Rules</Typography.Title>,
               children: (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: "12px 16px" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                    gap: "12px 16px",
+                  }}
+                  className="auto-cols-auto"
+                >
                   <Form.Item label="Entry Execution" style={{ gridColumn: "span 1" }}>
                     <Controller
                       control={control}

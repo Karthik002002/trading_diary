@@ -31,6 +31,8 @@ const TradeTable: React.FC = () => {
     outcome: search.outcome,
     search: search.search,
     symbol: search.symbol,
+    portfolio_id: search.portfolio_id,
+    status: search.status,
   };
 
   const strategyMapped: Record<number, string> = {};
@@ -86,6 +88,7 @@ const TradeTable: React.FC = () => {
 
   const handleDeleteClick = (trade: Trade) => {
     setTradeToDelete(trade);
+    setIsDeleteModalOpen(true);
   };
 
   const handleViewPhoto = (trade: Trade) => {

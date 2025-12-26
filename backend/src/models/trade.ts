@@ -32,8 +32,9 @@ export interface ITrade extends Document {
   emotional_state: string[] | null;
   post_trade_thoughts: string | null;
   rule_violations: string[] | null;
-  tags: string[];
+  tags: any[];
   timeframe_photos: { type: string; photo: string }[];
+  status: 'IN' | 'NIN';
 }
 
 const TradeSchema: Schema = new Schema(
@@ -63,7 +64,7 @@ const TradeSchema: Schema = new Schema(
     is_greed: { type: Boolean, required: false, default: false },
     is_fomo: { type: Boolean, required: false, default: false },
     returns: { type: Number, required: false },
-    tags: { type: [String], required: false, default: [] },
+    tags: [{ type: Schema.Types.ObjectId, ref: 'Tag', default: [] }],
     market_condition: {
       type: String,
       enum: ['trending', 'ranging', 'volatile', 'choppy'],
@@ -101,6 +102,12 @@ const TradeSchema: Schema = new Schema(
         },
         message: 'Duplicate timeframe types are not allowed.',
       },
+    },
+    status: {
+      type: String,
+      enum: ['IN', 'NIN'],
+      required: false,
+      default: 'NIN',
     },
   },
   {

@@ -13,6 +13,7 @@ import tradeRoutes from './routes/tradeRoutes';
 import strategyRoutes from './routes/strategyRoutes';
 import portfolioRoutes from './routes/portfolioRoutes';
 import symbolRoutes from './routes/symbolRoutes';
+import tagRoutes from './routes/tagRoutes';
 
 app.use(cors());
 app.use(express.json());
@@ -26,6 +27,7 @@ app.use('/api/trades', tradeRoutes);
 app.use('/api/strategies', strategyRoutes);
 app.use('/api/portfolios', portfolioRoutes);
 app.use('/api/symbols', symbolRoutes);
+app.use('/api/tags', tagRoutes);
 
 app.use('/uploads', express.static('uploads'));
 

@@ -29,7 +29,7 @@ export type { Trade, TradeResponse, Strategy, Symbol };
 export const useTrades = (
   page: number,
   limit: number,
-  filters?: { strategy_id?: string; outcome?: string; search?: string }
+  filters?: { strategy_id?: string; outcome?: string; search?: string; symbol?: string; portfolio_id?: string; status?: string; tags?: string[] }
 ) => {
   return useQuery<TradeResponse>({
     queryKey: ["trades", page, limit, filters],
@@ -40,7 +40,7 @@ export const useTrades = (
 
 export const useInfiniteTrades = (
   limit: number,
-  filters?: { strategy_id?: string; outcome?: string; search?: string }
+  filters?: { strategy_id?: string; outcome?: string; search?: string; symbol?: string; portfolio_id?: string; status?: string; tags?: string[] }
 ) => {
   return useInfiniteQuery<TradeResponse>({
     queryKey: ["trades", "infinite", limit, filters],

@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import Trade from '../models/trade';
+import Tag from '../models/tag';
 
 import { validateRequest } from '../middleware/validateRequest';
 import {
@@ -13,7 +14,7 @@ import { upload } from '../middleware/uploadMiddleware';
 import mongoose from 'mongoose';
 
 const buildTradeQuery = (query: any) => {
-  const { strategy_id, outcome, search, symbol } = query;
+  const { strategy_id, outcome, search, symbol, portfolio_id, status, tags } = query;
   const mongoQuery: any = {};
 
   if (strategy_id) {
@@ -22,8 +23,22 @@ const buildTradeQuery = (query: any) => {
   if (symbol) {
     mongoQuery.symbol_id = Number(symbol);
   }
+  if (portfolio_id) {
+    mongoQuery.portfolio_id = Number(portfolio_id);
+  }
   if (outcome) {
     mongoQuery.outcome = outcome;
+  }
+  if (status) {
+    mongoQuery.status = status;
+  }
+  if (tags) {
+    // If tags are provided as comma separated string or array
+    const tagIds = Array.isArray(tags) ? tags : String(tags).split(',');
+    // If user sends IDs (which they should for filtering), use them directly
+    if (tagIds.length > 0) {
+      mongoQuery.tags = { $in: tagIds };
+    }
   }
   if (search) {
     const searchRegex = { $regex: search, $options: 'i' };
@@ -281,6 +296,25 @@ router.post(
           req.body.timeframe_photos = JSON.parse(req.body.timeframe_photos);
         }
 
+        if (req.body.tags && typeof req.body.tags === 'string') {
+          try {
+            const parsedTags = JSON.parse(req.body.tags);
+            if (Array.isArray(parsedTags)) {
+              const tagIds = await Promise.all(parsedTags.map(async (tagName: string) => {
+                let tag = await Tag.findOne({ name: tagName });
+                if (!tag) {
+                  tag = await Tag.create({ name: tagName });
+                }
+                return tag._id;
+              }));
+              req.body.tags = tagIds;
+            }
+          } catch (e) {
+            console.error("Error parsing tags", e);
+            req.body.tags = [];
+          }
+        }
+
         if (Array.isArray(req.body.timeframe_photos)) {
           req.body.timeframe_photos.forEach((tp: any) => {
             const tfFile = files.find(f => f.fieldname === tp.type);
@@ -330,7 +364,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 
     const [trades, total] = await Promise.all([
-      Trade.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Trade.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('tags'),
       Trade.countDocuments(query),
     ]);
 
@@ -353,10 +387,10 @@ router.get('/', async (req: Request, res: Response) => {
 
 // Get single trade
 router.get('/:id', async (req: Request, res: Response) => {
-  // ... existing get id code ...
   try {
     const trade = await Trade.findById(req.params.id);
     if (!trade) return res.status(404).json({ message: 'Trade not found' });
+    await trade.populate('tags');
     res.json(trade);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -388,6 +422,25 @@ router.put(
 
         if (req.body.timeframe_photos && typeof req.body.timeframe_photos === 'string') {
           req.body.timeframe_photos = JSON.parse(req.body.timeframe_photos);
+        }
+
+        if (req.body.tags && typeof req.body.tags === 'string') {
+          try {
+            const parsedTags = JSON.parse(req.body.tags);
+            if (Array.isArray(parsedTags)) {
+              const tagIds = await Promise.all(parsedTags.map(async (tagName: string) => {
+                let tag = await Tag.findOne({ name: tagName });
+                if (!tag) {
+                  tag = await Tag.create({ name: tagName });
+                }
+                return tag._id;
+              }));
+              req.body.tags = tagIds;
+            }
+          } catch (e) {
+            console.error("Error parsing tags", e);
+            req.body.tags = [];
+          }
         }
 
         if (Array.isArray(req.body.timeframe_photos)) {

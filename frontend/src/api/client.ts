@@ -12,7 +12,7 @@ export const queryClient = new QueryClient({
 
 const BASE_URL = 'http://localhost:5000/api';
 export const BACKEND_URL = 'http://localhost:5000';
-export const fetchTrades = async (page = 1, limit = 20, filters?: { strategy_id?: string; outcome?: string; search?: string; symbol?: string }): Promise<TradeResponse> => {
+export const fetchTrades = async (page = 1, limit = 20, filters?: { strategy_id?: string; outcome?: string; search?: string; symbol?: string; portfolio_id?: string; status?: string; tags?: string[] }): Promise<TradeResponse> => {
   const params = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
@@ -22,6 +22,9 @@ export const fetchTrades = async (page = 1, limit = 20, filters?: { strategy_id?
   if (filters?.outcome) params.append('outcome', filters.outcome);
   if (filters?.search) params.append('search', filters.search);
   if (filters?.symbol) params.append('symbol', filters.symbol);
+  if (filters?.portfolio_id) params.append('portfolio_id', filters.portfolio_id);
+  if (filters?.status) params.append('status', filters.status);
+  if (filters?.tags && filters.tags.length > 0) params.append('tags', filters.tags.join(','));
 
   const response = await fetch(`${BASE_URL}/trades?${params.toString()}`);
   if (!response.ok) {
@@ -65,6 +68,15 @@ export const createTrade = async (tradeData: FormData): Promise<any> => {
 export const fetchStrategies = async (): Promise<Strategy[]> => {
   const response = await fetch(`${BASE_URL}/strategies`);
   if (!response.ok) throw new Error('Failed to fetch strategies');
+  return response.json();
+};
+
+export const fetchTags = async (search?: string): Promise<{ _id: string; name: string }[]> => {
+  const params = new URLSearchParams();
+  if (search) params.append('search', search);
+
+  const response = await fetch(`${BASE_URL}/tags?${params.toString()}`);
+  if (!response.ok) throw new Error('Failed to fetch tags');
   return response.json();
 };
 

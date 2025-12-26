@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import TradeTable from "../components/TradeTable";
 import CreateTradeModal from "../components/dashboard/CreateTradeModal";
@@ -6,6 +6,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import PnlCalendar from "../components/PnlCalendar";
 import { Button, Card, Input, Row, Select, Tooltip, Typography } from "antd";
 import { usePerformanceMetrics, useStrategies, useSymbols } from "../hooks/useTrades";
+import { usePortfolios, useTags } from "../hooks/useResources";
 import { useSearch } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import { useFilterStore } from "../store/useFilterStore";
@@ -24,12 +25,15 @@ const Dashboard: React.FC = () => {
     outcome: search.outcome,
     symbol: search.symbol,
     search: search.search,
+    portfolio_id: search.portfolio_id,
+    status: search.status,
+    tags: search.tags,
   };
 
   // Sync Zustand store with URL
   useEffect(() => {
     setStoreFilters(filters);
-  }, [filters.strategy_id, filters.outcome, filters.symbol, filters.search, setStoreFilters]);
+  }, [filters.strategy_id, filters.outcome, filters.symbol, filters.search, filters.portfolio_id, filters.status, filters.tags, setStoreFilters]);
 
   const handleFilterChange = (key: string, value: any) => {
 
@@ -43,9 +47,28 @@ const Dashboard: React.FC = () => {
 
   const { data: strategies, isLoading: strategiesLoading } = useStrategies();
   const { data: symbols, isLoading: symbolsLoading } = useSymbols();
-  console.log(filters);
+  const { data: portfolios, isLoading: portfoliosLoading } = usePortfolios();
+  const { data: tagsData } = useTags();
+  const updated = useRef(true)
   const { data: performanceMetric, isLoading: performanceMetricLoading } = usePerformanceMetrics({ filters });
 
+  useEffect(() => {
+    if (updated.current) {
+      const firstStrategy = strategies?.[0].id
+      const firstPortfolio = portfolios?.[0].id
+      if (firstStrategy && firstPortfolio) {
+        navigate({
+          search: {
+            ...search,
+            strategy_id: firstStrategy,
+            portfolio_id: firstPortfolio,
+
+          },
+        });
+        updated.current = false
+      }
+    }
+  }, [strategies, performanceMetric, portfolios])
   useHotkeys("ctrl+m", (e) => {
     e.preventDefault();
     setIsOpen(true);
@@ -77,7 +100,22 @@ const Dashboard: React.FC = () => {
     <div className="container mx-auto p-0">
 
 
-      <div className=" sticky top-2  z-[1000] grid grid-cols-12 gap-4 p-4 rounded-lg items-end bg-slate-800">
+      <div className=" sticky top-2  z-[1000] grid grid-cols-16 sm:grid-cols-8 md:grid-cols-6 lg:grid-cols-10 xl:grid-cols-16  xs:grid-cols-4  gap-4 p-4 rounded-lg items-end bg-slate-800">
+        <div className="col-span-2">
+          <Select
+            loading={portfoliosLoading}
+            allowClear
+            options={
+              portfolios?.map((p: any) => ({ value: p.id, label: p.name })) || []
+            }
+            value={filters.portfolio_id ? [{ value: filters.portfolio_id }] : []}
+            onChange={(params) =>
+              handleFilterChange("portfolio_id", params)
+            }
+            style={{ width: "100%" }}
+            placeholder="Portfolios"
+          />
+        </div>
         <div className="col-span-2">
           <Select
             loading={strategiesLoading}
@@ -127,7 +165,37 @@ const Dashboard: React.FC = () => {
             placeholder="Symbols"
           />
         </div>
-        <div className="col-span-5">
+
+        <div className="col-span-2">
+          <Select
+            allowClear
+            options={[
+              { value: "IN", label: "Ongoing (IN)" },
+              { value: "NIN", label: "Completed (NIN)" },
+            ]}
+            value={filters.status ? [{ value: filters.status }] : []}
+            onChange={(params) =>
+              handleFilterChange("status", params)
+            }
+            style={{ width: "100%" }}
+            placeholder="Status"
+          />
+        </div>
+        <div className="col-span-2">
+          <Select
+            mode="multiple"
+            allowClear
+            options={tagsData?.map((t: any) => ({ value: t._id, label: t.name })) || []}
+            value={Array.isArray(filters.tags) ? filters.tags : typeof filters.tags === 'string' ? filters.tags.split(',') : []}
+            onChange={(values) =>
+              handleFilterChange("tags", values)
+            }
+            style={{ width: "100%" }}
+            placeholder="Tags"
+            maxTagCount="responsive"
+          />
+        </div>
+        <div className="col-span-3">
           <Input
             value={filters.search || ""}
             onChange={(e) =>

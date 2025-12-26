@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const tradeSchema = z.object({
   strategy_id: z.number(),
+  portfolio_id: z.number().nullable().optional(),
   symbol_id: z.number(),
   quantity: z.coerce.number().positive("Quantity must be > 0"),
   type: z.enum(["buy", "sell"]),
@@ -22,8 +23,6 @@ export const tradeSchema = z.object({
   exit_execution: z.enum(["perfect", "early", "late"]).optional(),
   emotional_state: z.enum(["calm", "anxious", "overconfident", "fearful", "tilted"]).optional(),
   is_greed: z.boolean().optional(),
-  target_price: z.coerce.number().optional(),
-  stop_loss_price: z.coerce.number().optional(),
   is_fomo: z.boolean().optional(),
   post_trade_thoughts: z.string().optional(),
   rr: z.coerce.number().optional(),
@@ -32,6 +31,7 @@ export const tradeSchema = z.object({
     type: z.string(),
     photo: z.any().optional(),
   })).optional(),
+  status: z.enum(['IN', 'NIN']).optional().default('NIN'),
 });
 
 export type TradeFormValues = z.infer<typeof tradeSchema>;

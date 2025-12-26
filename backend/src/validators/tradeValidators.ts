@@ -55,6 +55,10 @@ export const createTradeValidator = [
   body('timeframe_photos').optional(),
   body('stop_loss').optional().isNumeric().withMessage('Stop loss must be a number'),
   body('take_profit').optional().isNumeric().withMessage('Take profit must be a number'),
+  body('status')
+    .optional({ nullable: true })
+    .isIn(['IN', 'NIN'])
+    .withMessage('Status must be either IN (ongoing) or NIN (completed)'),
 ];
 
 export const updateTradeValidator = [
@@ -123,4 +127,8 @@ export const updateTradeValidator = [
   body('is_fomo').optional().isBoolean().withMessage('Is fomo must be a boolean'),
   body('photo').optional().isString().withMessage('Photo must be a string URL or path'),
   body('timeframe_photos').optional(),
+  body('status')
+    .optional({ nullable: true })
+    .isIn(['IN', 'NIN'])
+    .withMessage('Status must be either IN (ongoing) or NIN (completed)'),
 ];
