@@ -44,6 +44,8 @@ Every trade object contains the following fields:
 | `emotional_state` | `string[]` | Emotional states: `calm`, `anxious`, `overconfident`, `fearful`, `tilted` |
 | `post_trade_thoughts` | `string` | Reflections after the trade |
 | `rule_violations` | `string[]` | Violated trading rules: `Early Exit`, `Late Exit`, `Early Entry`, `Late Entry`, `Overconfidence`, `Fear`, `Tilt`, `Revenge Trade` |
+| `tags` | `ObjectId[]` | References to `Tag` model. Resolved from names in POST/PUT. |
+| `status` | `'IN' \| 'NIN'` | Trade status: `IN` (Ongoing), `NIN` (Completed). Default: `NIN`. |
 | `timeframe_photos` | `{ type: string, photo: string }[]` | Array of multi-timeframe screenshots. Timeframe types include: `1m`, `5m`, `15m`, `30m`, `1h`, `4h`, `1D`, `1W`, `1M`. **Duplicates are not allowed.** |
 
 #### Calculated Fields (Auto-generated on save)
@@ -73,7 +75,10 @@ Retrieves a paginated list of trades with optional filtering.
 | `limit` | `number` | 20 | Number of trades per page |
 | `strategy_id` | `number` | - | Filter by strategy ID |
 | `symbol` | `number` | - | Filter by symbol ID |
+| `portfolio_id` | `number` | - | Filter by portfolio ID |
 | `outcome` | `string` | - | Filter by `win`, `loss`, or `neutral` |
+| `status` | `string` | - | Filter by `IN` or `NIN` |
+| `tags` | `string` | - | Filter by tag IDs (comma separated) |
 | `search` | `string` | - | Search in `entry_reason`, `exit_reason`, and `notes` |
 
 - **Response (200 OK)**:
@@ -148,7 +153,8 @@ Creates a new trade record. Supports image uploads for screenshots.
 | `photo` | `file` | No | Main trade screenshot |
 | `timeframe_photos` | `JSON string` | No | Array of `{type, photo}` |
 | `[timeframe_type]` | `file` | No | Timeframe screenshot (e.g., field name `1h`, `30m`) |
-| `tags` | `JSON string` | No | Array of tag strings |
+| `tags` | `JSON string` | No | Array of tag strings (names) |
+| `status` | `string` | No | `IN` or `NIN` |
 | `rule_violations` | `JSON string` | No | Array of rule violations |
 | ... | ... | ... | Other optional fields per Trade Data Model |
 
@@ -191,7 +197,7 @@ Calculates advanced performance statistics for filtered trades.
 
 - **URL**: `/trades/stats/performance-metric`
 - **Method**: `GET`
-- **Query Parameters**: Same as Get All Trades (`strategy_id`, `symbol`, `outcome`, `search`).
+- **Query Parameters**: Same as Get All Trades (`strategy_id`, `symbol`, `portfolio_id`, `outcome`, `status`, `tags`, `search`).
 
 - **Response (200 OK)**:
 
@@ -201,6 +207,8 @@ Calculates advanced performance statistics for filtered trades.
 | `avgRr` | `number` | Average actual Risk-Reward ratio across all trades |
 | `expectancy` | `number` | Expected value per trade: `(win_prob * avg_win_pl) + (loss_prob * avg_loss_pl)` |
 | `totalTrades` | `number` | Total number of trades matching the filter |
+| `totalReturns` | `number` | Cumulative percentage returns across matching trades |
+| `totalPnl` | `number` | Cumulative realized P/L across matching trades |
 | `avgConfidence` | `number` | Average confidence level (1-10) |
 | `consistencyScore` | `number` | Standard deviation of P/L (lower = more consistent) |
 | `bestTrade` | `number` | Maximum P/L from a single trade |
@@ -213,6 +221,8 @@ Calculates advanced performance statistics for filtered trades.
   "avgRr": 1.85,
   "expectancy": 120.50,
   "totalTrades": 50,
+  "totalReturns": 15.4,
+  "totalPnl": 2400.50,
   "avgConfidence": 7.2,
   "consistencyScore": 150.25,
   "bestTrade": 500.00,
