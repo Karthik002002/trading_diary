@@ -1,14 +1,14 @@
 import {
-	Button,
-	Checkbox,
+	Flex,
 	Form,
 	Input,
+	InputNumber,
 	message,
 	Switch,
 	Tabs,
 	Tooltip,
 } from "antd";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import PortfolioManager from "../components/settings/PortfolioManager";
 import StrategyManager from "../components/settings/StrategyManager";
@@ -17,43 +17,20 @@ import {
 	usePreferenceStore,
 	type TDashboardDisplayState,
 } from "../store/preferenceStore";
+import { InfoCircleOutlined } from "@ant-design/icons";
+import { debounce } from "lodash";
 
 const Settings = () => {
 	const [activeKey, setActiveKey] = useState<string>("general");
-	const { defaultQuantity, setDefaultQuantity } = usePreferenceStore();
-	const [defaultQty, setDefaultQty] = useState(defaultQuantity);
-
-	const handleSavePreferences = () => {
-		setDefaultQuantity(defaultQty);
-		message.success("Preferences saved!");
-	};
 
 	const items = [
 		{
 			key: "general",
 			label: "General",
 			children: (
-				<div className="p-2 max-w-full">
+				<div className="p-2 max-w-full flex flex-col gap-2">
 					<DashboardPreference />
-					<Form layout="vertical">
-						<Form.Item label="Default Trade Quantity">
-							<Input
-								value={defaultQty}
-								onChange={(e) => setDefaultQty(e.target.value)}
-								type="number"
-								className="max-w-[200px]"
-								placeholder="Enter default quantity"
-							/>
-						</Form.Item>
-
-						<Button
-							type="primary"
-							disabled={defaultQty === defaultQuantity}
-							onClick={handleSavePreferences}
-						>
-							Save Preferences
-						</Button>
-					</Form>
+					<MaxLoss />
 				</div>
 			),
 		},
@@ -153,5 +130,65 @@ const DashboardPreference = () => {
 				))}
 			</Form>
 		</div>
+	);
+};
+
+const MaxLoss = () => {
+	const { maxLoss, setMaxLoss, defaultQuantity, setDefaultQuantity } =
+		usePreferenceStore();
+	const [maxLossValue, setMaxLossValue] = useState(maxLoss);
+
+	const [defaultQty, setDefaultQty] = useState(defaultQuantity);
+	const handleDebounce = useMemo(
+		() =>
+			debounce((value: string) => {
+				message.success("Max loss updated");
+				setMaxLoss(value);
+			}, 500),
+		[],
+	);
+	const handleDefaultQtyDebounce = useMemo(
+		() =>
+			debounce((value: string) => {
+				message.success("Default quantity updated");
+				setDefaultQuantity(value);
+			}, 500),
+		[],
+	);
+
+	return (
+		<Flex gap={10} align="center" className="!pb-2">
+			<div>
+				Max Loss %{" "}
+				<Tooltip title="Max loss percentage, this will be applied on the trade entry form.">
+					<InfoCircleOutlined />
+				</Tooltip>
+			</div>
+			<InputNumber
+				value={maxLossValue}
+				onChange={(e) => {
+					if (e) {
+						setMaxLossValue(e);
+						handleDebounce(e);
+					}
+				}}
+			/>
+			<div className="flex flex-row items-center gap-4">
+				Default Trade Quantity{" "}
+				<Tooltip title="Default trade quantity, this will be applied on the trade entry form.">
+					<InfoCircleOutlined />
+				</Tooltip>
+				<Input
+					value={defaultQty}
+					onChange={(e) => {
+						setDefaultQty(e.target.value);
+						handleDefaultQtyDebounce(e.target.value);
+					}}
+					type="number"
+					className="max-w-[100px]"
+					placeholder="Enter default quantity"
+				/>
+			</div>
+		</Flex>
 	);
 };

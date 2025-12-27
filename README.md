@@ -59,21 +59,33 @@ A comprehensive trading journal application to track your trades, strategies, an
     ```
     The application will typically be accessible at `http://localhost:5173`.
 
-### 3. Docker Setup
+### 3. Docker Setup (Recommended)
 
-Alternatively, you can run the entire stack using Docker Compose.
+The easiest way to run the entire stack (Frontend, Backend, and MongoDB) is using Docker. This setup automatically handles MongoDB installation and data persistence.
 
-1.  Make sure you have [Docker](https://www.docker.com/) and Docker Compose installed.
-
-2.  Run the application:
+1.  **Start the Application**:
+    From the root directory, run:
     ```bash
-    docker-compose up --build
+    npm run docker:up
+    ```
+    This will build the images and start the containers in the background.
+
+2.  **View Logs**:
+    To see the logs from all services:
+    ```bash
+    npm run docker:logs
     ```
 
-3.  Access the application:
-    - Frontend: `http://localhost:5173`
-    - Backend: `http://localhost:5000`
-    - MongoDB: `localhost:27017`
+3.  **Stop the Application**:
+    To stop and remove the containers:
+    ```bash
+    npm run docker:down
+    ```
+
+4.  **Access the application**:
+    - **Frontend**: [http://localhost:5173](http://localhost:5173)
+    - **Backend**: [http://localhost:5000](http://localhost:5000)
+    - **MongoDB**: `localhost:27017` (Data is persisted in the `mongo-data` volume)
 
 ## Features
 

@@ -23,6 +23,8 @@ export type TPreferenceStore = {
 		state: TDashboardDisplayState,
 		value: boolean,
 	) => void;
+	maxLoss: string;
+	setMaxLoss: (maxLoss: string) => void;
 };
 
 const preferenceStore = create<TPreferenceStore>()(
@@ -73,6 +75,8 @@ const preferenceStore = create<TPreferenceStore>()(
 						},
 					};
 				}),
+			maxLoss: "",
+			setMaxLoss: (maxLoss: string) => set({ maxLoss: maxLoss }),
 		}),
 
 		{

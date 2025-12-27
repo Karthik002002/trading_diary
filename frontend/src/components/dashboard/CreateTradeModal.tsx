@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useState } from "react";
+import React, { Fragment, useEffect, useMemo, useState } from "react";
 import {
 	Modal,
 	Button,
@@ -12,13 +12,14 @@ import {
 	Typography,
 	Collapse,
 	Flex,
+	message,
 } from "antd";
 import {
 	UploadOutlined,
 	PlusOutlined,
 	DeleteOutlined,
 } from "@ant-design/icons";
-import { useForm, Controller, useFieldArray } from "react-hook-form";
+import { useForm, Controller, useFieldArray, useWatch } from "react-hook-form";
 
 import dayjs from "dayjs";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,6 +37,8 @@ import {
 import { tradeSchema, type TradeFormValues } from "./schema";
 import { FaPaste } from "react-icons/fa";
 import { CreateSymbolModal } from "../settings/CreateSymbolModal";
+import { usePreferenceStore } from "../../store/preferenceStore";
+import { debounce } from "lodash";
 
 interface Props {
 	isOpen: boolean;
@@ -61,8 +64,14 @@ const CreateTradeModal: React.FC<Props> = ({
 	const [pendingSymbolFieldChange, setPendingSymbolFieldChange] = useState<
 		((id: number) => void) | null
 	>(null);
-
-	const { control, handleSubmit, reset } = useForm<TradeFormValues>({
+	const { maxLoss } = usePreferenceStore();
+	const maxLossNumber = Number(maxLoss);
+	const {
+		control,
+		handleSubmit,
+		reset,
+		formState: { isDirty },
+	} = useForm<TradeFormValues>({
 		resolver: zodResolver(tradeSchema as any),
 		defaultValues: {
 			strategy_id: 1,
@@ -97,6 +106,33 @@ const CreateTradeModal: React.FC<Props> = ({
 		control,
 		name: "timeframe_photos",
 	});
+	const stop_loss = Number(useWatch({ control, name: "stop_loss" }));
+	const entry_price = Number(useWatch({ control, name: "entry_price" }));
+
+	const debouncedValidate = useMemo(
+		() =>
+			debounce((stop: number, entry: number) => {
+				if (!stop || !entry) return;
+
+				const stopLossDiff = ((stop - entry) / entry) * 100;
+
+				if (stopLossDiff < -maxLossNumber) {
+					message.error({
+						content: "Stop loss exceeds max loss percentage",
+						key: "stop-loss-error", // prevents stacking
+					});
+				}
+			}, 500),
+		[maxLossNumber],
+	);
+
+	useEffect(() => {
+		debouncedValidate(stop_loss, entry_price);
+
+		return () => {
+			debouncedValidate.cancel();
+		};
+	}, [stop_loss, entry_price, debouncedValidate]);
 
 	/** Populate form on edit */
 	useEffect(() => {
@@ -209,10 +245,30 @@ const CreateTradeModal: React.FC<Props> = ({
 		}
 	};
 
+	const handleClose = () => {
+		if (!isDirty) {
+			reset();
+			onClose();
+			return;
+		}
+
+		Modal.confirm({
+			title: "Discard changes?",
+			content: "You have unsaved changes. Are you sure you want to close?",
+			okText: "Discard",
+			cancelText: "Continue editing",
+			okType: "danger",
+			onOk: () => {
+				reset();
+				onClose();
+			},
+		});
+	};
+
 	return (
 		<Modal
 			open={isOpen}
-			onCancel={onClose}
+			onCancel={handleClose}
 			title={tradeToEdit ? "Edit Trade" : "Record New Trade"}
 			footer={null}
 			centered
@@ -933,7 +989,7 @@ const CreateTradeModal: React.FC<Props> = ({
 				/>
 
 				<div className="flex justify-end gap-2 mt-6 pt-4 border-t border-stone-700">
-					<Button onClick={onClose}>Cancel</Button>
+					<Button onClick={handleClose}>Cancel</Button>
 					<Button
 						type="primary"
 						htmlType="submit"
