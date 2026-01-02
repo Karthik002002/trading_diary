@@ -1,16 +1,15 @@
-import React, { useState, useMemo } from "react";
 import { createColumnHelper } from "@tanstack/react-table";
-
-import {
-	usePortfolios,
-	useCreatePortfolio,
-	useUpdatePortfolio,
-	useDeletePortfolio,
-} from "../../hooks/useResources";
-import { FaEdit, FaTrash, FaPlus } from "react-icons/fa";
-import { VirtualTable } from "../VirtualTable";
-import { Icon } from "../ui/Icon";
 import { Button, Input, Modal } from "antd";
+import React, { useMemo, useState } from "react";
+import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
+import {
+	useCreatePortfolio,
+	useDeletePortfolio,
+	usePortfolios,
+	useUpdatePortfolio,
+} from "../../hooks/useResources";
+import { Icon } from "../ui/Icon";
+import { VirtualTable } from "../VirtualTable";
 
 const PortfolioManager = () => {
 	const { data: portfolios, isLoading } = usePortfolios();

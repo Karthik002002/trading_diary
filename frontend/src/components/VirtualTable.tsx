@@ -1,15 +1,15 @@
-import React, { useRef } from "react";
 import {
-	useReactTable,
-	getCoreRowModel,
+	type ColumnDef,
 	flexRender,
+	getCoreRowModel,
 	getSortedRowModel,
 	type SortingState,
-	type ColumnDef,
+	useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 import cn from "classnames";
+import React, { useRef } from "react";
+import { FaSort, FaSortDown, FaSortUp } from "react-icons/fa";
 
 interface VirtualTableProps<T> {
 	data: T[];

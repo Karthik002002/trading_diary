@@ -1,3 +1,4 @@
+import { InfoCircleOutlined } from "@ant-design/icons";
 import {
 	Flex,
 	Form,
@@ -8,17 +9,15 @@ import {
 	Tabs,
 	Tooltip,
 } from "antd";
+import { debounce } from "lodash";
 import { useMemo, useState } from "react";
-
 import PortfolioManager from "../components/settings/PortfolioManager";
 import StrategyManager from "../components/settings/StrategyManager";
 import SymbolManager from "../components/settings/SymbolManager";
 import {
-	usePreferenceStore,
 	type TDashboardDisplayState,
+	usePreferenceStore,
 } from "../store/preferenceStore";
-import { InfoCircleOutlined } from "@ant-design/icons";
-import { debounce } from "lodash";
 
 const Settings = () => {
 	const [activeKey, setActiveKey] = useState<string>("general");

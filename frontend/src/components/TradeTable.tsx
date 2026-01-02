@@ -1,22 +1,23 @@
-import React, { useState, useEffect, useRef } from "react";
+import { LoadingOutlined } from "@ant-design/icons";
+import { useSearch } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
+import { Button, Modal, Spin } from "antd";
+import React, { useEffect, useRef, useState } from "react";
+import { Circles } from "react-loader-spinner";
+import { BACKEND_URL } from "../api/client";
 import {
+	type Trade,
+	useDeleteTrade,
 	useInfiniteTrades,
 	useStrategies,
 	useSymbols,
-	type Trade,
 } from "../hooks/useTrades";
-import { VirtualTable } from "./VirtualTable";
-import { Icon } from "./ui/Icon";
-import CreateTradeModal from "./dashboard/CreateTradeModal";
 import DeleteConfirmationModal from "./DeleteConfirmationModal";
+import CreateTradeModal from "./dashboard/CreateTradeModal";
 import ImageViewerModal from "./ImageViewerModal";
-import { useDeleteTrade } from "../hooks/useTrades";
-import { useSearch } from "@tanstack/react-router";
-import { Circles } from "react-loader-spinner";
-import { Button, Modal, Spin } from "antd";
-import { LoadingOutlined } from "@ant-design/icons";
-import { BACKEND_URL } from "../api/client";
+import { Icon } from "./ui/Icon";
+import { VirtualTable } from "./VirtualTable";
+
 const columnHelper = createColumnHelper<Trade>();
 
 const TradeTable: React.FC = () => {
@@ -135,6 +136,21 @@ const TradeTable: React.FC = () => {
 				header: "Symbol",
 				cell: (info) => symbolMapped[info.getValue()] ?? "-",
 			}),
+			columnHelper.accessor("status", {
+				header: "Status",
+				cell: (info) => {
+					const row = info.row.original.status;
+					return (
+						<div>
+							{row === "IN"
+								? "In-Progress"
+								: row === "NIN"
+									? "Completed"
+									: (row ?? "-")}
+						</div>
+					);
+				},
+			}),
 			columnHelper.accessor("type", {
 				header: "Type",
 				cell: (info) => info.getValue().toUpperCase(),
@@ -142,12 +158,12 @@ const TradeTable: React.FC = () => {
 			columnHelper.accessor("quantity", {
 				header: "Qty",
 			}),
-			columnHelper.accessor("entry_price", {
-				header: "Entry",
-			}),
-			columnHelper.accessor("exit_price", {
-				header: "Exit",
-			}),
+			// columnHelper.accessor("entry_price", {
+			// 	header: "Entry",
+			// }),
+			// columnHelper.accessor("exit_price", {
+			// 	header: "Exit",
+			// }),
 			columnHelper.accessor((row) => row.pl?.toFixed(2), {
 				id: "pl",
 				header: "P/L",
@@ -309,7 +325,11 @@ const ViewTradeModal = ({
 						{displaKeyMap.map((item, index) => (
 							<div
 								key={item.key}
-								className={`flex text-sm ${index !== displaKeyMap.length - 1 ? "border-b-[1px] border-gray-200" : ""}"
+								className={`flex text-sm ${
+									index !== displaKeyMap.length - 1
+										? "border-b-[1px] border-gray-200"
+										: ""
+								}"
                 }`}
 							>
 								<div className="w-1/2 px-4 py-2 font-medium text-white border-r">

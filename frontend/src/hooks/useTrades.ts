@@ -1,43 +1,32 @@
 import {
-	useQuery,
-	useMutation,
-	useQueryClient,
 	useInfiniteQuery,
+	useMutation,
+	useQuery,
+	useQueryClient,
 } from "@tanstack/react-query";
 import {
-	fetchTrades,
 	createTrade,
-	updateTrade,
 	deleteTrade,
+	fetchPerformanceMetric,
+	fetchPnlCalendar,
 	fetchStrategies,
 	fetchSymbols,
-	fetchPnlCalendar,
-	fetchPerformanceMetric,
+	fetchTrades,
+	updateTrade,
 } from "../api/client";
 import type {
-	Trade,
-	TradeResponse,
+	PnlCalendarDay,
 	Strategy,
 	Symbol,
-	PnlCalendarDay,
+	TFilters,
+	Trade,
+	TradeResponse,
 } from "../types/api";
 
 // Re-export types for convenience
 export type { Trade, TradeResponse, Strategy, Symbol };
 
-export const useTrades = (
-	page: number,
-	limit: number,
-	filters?: {
-		strategy_id?: string;
-		outcome?: string;
-		search?: string;
-		symbol?: string;
-		portfolio_id?: string;
-		status?: string;
-		tags?: string[];
-	},
-) => {
+export const useTrades = (page: number, limit: number, filters?: TFilters) => {
 	return useQuery<TradeResponse>({
 		queryKey: ["trades", page, limit, filters],
 		queryFn: () => fetchTrades(page, limit, filters),
@@ -45,18 +34,7 @@ export const useTrades = (
 	});
 };
 
-export const useInfiniteTrades = (
-	limit: number,
-	filters?: {
-		strategy_id?: string;
-		outcome?: string;
-		search?: string;
-		symbol?: string;
-		portfolio_id?: string;
-		status?: string;
-		tags?: string[];
-	},
-) => {
+export const useInfiniteTrades = (limit: number, filters?: TFilters) => {
 	return useInfiniteQuery<TradeResponse>({
 		queryKey: ["trades", "infinite", limit, filters],
 		queryFn: ({ pageParam = 1 }) =>
@@ -120,10 +98,14 @@ export const useSymbols = () => {
 	});
 };
 
-export const usePnlCalendar = (month: number, year: number) => {
+export const usePnlCalendar = (
+	month: number,
+	year: number,
+	filters?: TFilters,
+) => {
 	return useQuery<PnlCalendarDay[]>({
-		queryKey: ["pnlCalendar", month, year],
-		queryFn: () => fetchPnlCalendar(month, year),
+		queryKey: ["pnlCalendar", month, year, filters],
+		queryFn: () => fetchPnlCalendar(month, year, filters),
 	});
 };
 

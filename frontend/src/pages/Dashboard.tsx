@@ -1,22 +1,20 @@
-import React, { useEffect, useRef, useState } from "react";
-
-import TradeTable from "../components/TradeTable";
-import CreateTradeModal from "../components/dashboard/CreateTradeModal";
-import { useHotkeys } from "react-hotkeys-hook";
-import PnlCalendar from "../components/PnlCalendar";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Button, Card, Input, Row, Select, Tooltip, Typography } from "antd";
+import React, { useEffect, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { FaPlus } from "react-icons/fa";
+import CreateTradeModal from "../components/dashboard/CreateTradeModal";
+import PnlCalendar from "../components/PnlCalendar";
+import TradeTable from "../components/TradeTable";
+import SpeedoGauge from "../components/ui/resuable/chart/GaugeChart";
+import { usePortfolios, useTags } from "../hooks/useResources";
 import {
 	usePerformanceMetrics,
 	useStrategies,
 	useSymbols,
 } from "../hooks/useTrades";
-import { usePortfolios, useTags } from "../hooks/useResources";
-import { useSearch } from "@tanstack/react-router";
-import { useNavigate } from "@tanstack/react-router";
-import { useFilterStore } from "../store/useFilterStore";
-import { FaPlus } from "react-icons/fa";
-import SpeedoGauge from "../components/ui/resuable/chart/GaugeChart";
 import { usePreferenceStore } from "../store/preferenceStore";
+import { useFilterStore } from "../store/useFilterStore";
 
 const Dashboard: React.FC = () => {
 	const [isOpen, setIsOpen] = useState(false);
@@ -110,7 +108,7 @@ const Dashboard: React.FC = () => {
 
 	return (
 		<div className="container mx-auto p-0">
-			<div className=" sticky top-2  z-[1000] grid grid-cols-16 sm:grid-cols-8 md:grid-cols-6 lg:grid-cols-10 xl:grid-cols-16  xs:grid-cols-4  gap-4 p-4 rounded-lg items-end bg-slate-800">
+			<div className=" sticky top-2  z-1000 grid grid-cols-16 sm:grid-cols-8 md:grid-cols-6 lg:grid-cols-10 xl:grid-cols-16  xs:grid-cols-4  gap-4 p-4 rounded-lg items-end bg-slate-800">
 				<div className="col-span-2">
 					<Select
 						loading={portfoliosLoading}
@@ -231,7 +229,7 @@ const Dashboard: React.FC = () => {
 							width: "180px",
 							background: "transparent",
 						}}
-						className=" !border-none flex flex-col justify-center items-center"
+						className=" border-none! flex flex-col justify-center items-center"
 						styles={{
 							body: {
 								padding: "0px",
@@ -309,7 +307,7 @@ const RenderCard = ({
 	return (
 		<Card
 			style={{ height: "100px", width: "180px", background: "transparent" }}
-			className=" !border-none flex flex-col justify-center items-center"
+			className=" border-none! flex flex-col justify-center items-center"
 			styles={{
 				body: {
 					padding: "0px",

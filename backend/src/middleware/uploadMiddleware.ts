@@ -1,6 +1,6 @@
+import fs from "fs";
 import multer from "multer";
 import path from "path";
-import fs from "fs";
 
 // Ensure uploads directory exists
 const uploadDir = "uploads";
@@ -34,7 +34,7 @@ function checkFileType(file: Express.Multer.File, cb: any) {
 
 export const upload = multer({
 	storage,
-	fileFilter: function (req, file, cb) {
+	fileFilter: (req, file, cb) => {
 		checkFileType(file, cb);
 	},
 });

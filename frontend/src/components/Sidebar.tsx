@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Icon } from "./ui/Icon";
 import classNames from "classnames";
+import { Icon } from "./ui/Icon";
 
 interface SidebarProps {
 	isCollapsed: boolean;

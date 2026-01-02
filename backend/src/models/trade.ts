@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { type Document, Schema } from "mongoose";
 
 export interface ITrade extends Document {
 	portfolio_id: number | null;
@@ -116,7 +116,7 @@ const TradeSchema: Schema = new Schema(
 			],
 			default: [],
 			validate: {
-				validator: function (v: any[]) {
+				validator: (v: any[]) => {
 					const types = v.map((item) => item.type);
 					return new Set(types).size === types.length;
 				},

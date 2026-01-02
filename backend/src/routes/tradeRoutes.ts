@@ -1,8 +1,7 @@
-import express, { Request, Response } from "express";
-import Trade from "../models/trade";
-import Tag from "../models/tag";
-
+import express, { type Request, type Response } from "express";
 import { validateRequest } from "../middleware/validateRequest";
+import Tag from "../models/tag";
+import Trade from "../models/trade";
 import {
 	createTradeValidator,
 	updateTradeValidator,
@@ -10,8 +9,8 @@ import {
 
 const router = express.Router();
 
-import { upload } from "../middleware/uploadMiddleware";
 import mongoose from "mongoose";
+import { upload } from "../middleware/uploadMiddleware";
 
 const buildTradeQuery = (query: any) => {
 	const { strategy_id, outcome, search, symbol, portfolio_id, status, tags } =
@@ -276,7 +275,7 @@ router.get("/stats/execution-metric", async (req: Request, res: Response) => {
 router.get("/pnl/calendar", async (req: Request, res: Response) => {
 	try {
 		const { month, year } = req.query;
-
+		const query = buildTradeQuery(req.query);
 		if (!month || !year) {
 			return res.status(400).json({ message: "Month and year are required" });
 		}
@@ -287,6 +286,7 @@ router.get("/pnl/calendar", async (req: Request, res: Response) => {
 		const trades = await Trade.aggregate([
 			{
 				$match: {
+					...query,
 					trade_date: {
 						$gte: start,
 						$lte: end,

@@ -1,10 +1,12 @@
-import React, { useState } from "react";
-import { Icon } from "./ui/Icon";
-import { usePnlCalendar } from "../hooks/useTrades";
+import { useSearch } from "@tanstack/react-router";
 import { DatePicker, Tooltip } from "antd";
 import dayjs from "dayjs";
+import type React from "react";
+import { useState } from "react";
+import { usePnlCalendar } from "../hooks/useTrades";
+import { Icon } from "./ui/Icon";
 
-interface CalendarProps {}
+type CalendarProps = {};
 
 interface PnlData {
 	date: string;
@@ -15,13 +17,23 @@ interface PnlData {
 
 const PnlCalendar: React.FC<CalendarProps> = () => {
 	const [currentDate, setCurrentDate] = useState(new Date());
-
+	const search: any = useSearch({ from: "/" });
 	const year = currentDate.getFullYear();
 	const month = currentDate.getMonth();
+	const filters = {
+		strategy_id: search.strategy_id,
+		outcome: search.outcome,
+		symbol: search.symbol,
+		search: search.search,
+		portfolio_id: search.portfolio_id,
+		status: search.status,
+		tags: search.tags,
+	};
 
 	const { data: pnlDataArray, isLoading: loading } = usePnlCalendar(
 		month + 1,
 		year,
+		filters,
 	);
 
 	const pnlData: Record<string, PnlData> = {};
@@ -61,21 +73,6 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
 		setCurrentDate(new Date(year, month + 1, 1));
 	};
 
-	const monthNames = [
-		"January",
-		"February",
-		"March",
-		"April",
-		"May",
-		"June",
-		"July",
-		"August",
-		"September",
-		"October",
-		"November",
-		"December",
-	];
-
 	const formatDateKey = (day: number) => {
 		return `${year}-${String(month + 1).padStart(2, "0")}-${String(
 			day,
@@ -85,7 +82,7 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
 	return (
 		<div className="bg-surface rounded-2xl p-6 border border-gray-700 shadow-xl mt-2">
 			<div className="flex justify-between items-center mb-6">
-				<h2 className="text-xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+				<h2 className="text-xl font-bold bg-linear-to-r from-white to-gray-400 bg-clip-text text-transparent">
 					Trading Calendar
 				</h2>
 				<div className="flex items-center space-x-4">
@@ -95,7 +92,7 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
 					>
 						<Icon name="left-arrow" size={{ height: 20, width: 20 }} />
 					</button>
-					<span className="text-lg font-semibold min-w-[140px] text-center text-white cursor-pointer">
+					<span className="text-lg font-semibold min-w-35 text-center text-white cursor-pointer">
 						{/* {monthNames[month]} {year} */}
 						<DatePicker
 							picker="month"
@@ -130,7 +127,7 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
 			</div>
 
 			{loading ? (
-				<div className="flex min-h-[650px] justify-center items-center h-64">
+				<div className="flex min-h-162.5 justify-center items-center h-64">
 					<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
 				</div>
 			) : (
@@ -182,7 +179,7 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
 							>
 								<div
 									key={day}
-									className={`h-24 cursor-pointer hover:border-[1px] hover:border-gray-600 rounded-xl p-3 flex flex-col justify-between transition-all hover:scale-105 ${bgColor}`}
+									className={`h-24 cursor-pointer hover:border hover:border-gray-600 rounded-xl p-3 flex flex-col justify-between transition-all hover:scale-105 ${bgColor}`}
 								>
 									<div className="text-right">
 										<span

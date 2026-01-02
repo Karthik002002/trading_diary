@@ -1,10 +1,11 @@
 import { QueryClient } from "@tanstack/react-query";
 import type {
-	TradeResponse,
+	PerformanceMetric,
+	PnlCalendarDay,
 	Strategy,
 	Symbol,
-	PnlCalendarDay,
-	PerformanceMetric,
+	TFilters,
+	TradeResponse,
 } from "../types/api";
 
 export const queryClient = new QueryClient({
@@ -114,10 +115,22 @@ export const fetchSymbols = async (): Promise<Symbol[]> => {
 export const fetchPnlCalendar = async (
 	month: number,
 	year: number,
+	filters?: TFilters,
 ): Promise<PnlCalendarDay[]> => {
-	const response = await fetch(
-		`${BASE_URL}/trades/pnl/calendar?month=${month}&year=${year}`,
-	);
+	const params = new URLSearchParams({
+		month: month.toString(),
+		year: year.toString(),
+	});
+	if (filters?.strategy_id) params.append("strategy_id", filters.strategy_id);
+	if (filters?.outcome) params.append("outcome", filters.outcome);
+	if (filters?.search) params.append("search", filters.search);
+	if (filters?.symbol) params.append("symbol", filters.symbol);
+	if (filters?.portfolio_id)
+		params.append("portfolio_id", filters.portfolio_id);
+	if (filters?.status) params.append("status", filters.status);
+	if (filters?.tags && filters.tags.length > 0)
+		params.append("tags", filters.tags.join(","));
+	const response = await fetch(`${BASE_URL}/trades/pnl/calendar?${params}`);
 	if (!response.ok) {
 		throw new Error("Failed to fetch PnL calendar data");
 	}

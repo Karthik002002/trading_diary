@@ -1,16 +1,15 @@
-import { useState, useMemo } from "react";
 import { createColumnHelper } from "@tanstack/react-table";
-
-import {
-	useSymbols,
-	useCreateSymbol,
-	useUpdateSymbol,
-	useDeleteSymbol,
-} from "../../hooks/useResources";
-import { FaTrash, FaPlus } from "react-icons/fa";
-import { VirtualTable } from "../VirtualTable";
-import { Icon } from "../ui/Icon";
 import { Button, Input, Modal } from "antd";
+import { useMemo, useState } from "react";
+import { FaPlus, FaTrash } from "react-icons/fa";
+import {
+	useCreateSymbol,
+	useDeleteSymbol,
+	useSymbols,
+	useUpdateSymbol,
+} from "../../hooks/useResources";
+import { Icon } from "../ui/Icon";
+import { VirtualTable } from "../VirtualTable";
 
 const SymbolManager = () => {
 	const { data: symbols, isLoading } = useSymbols();

@@ -1,8 +1,8 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
+import { ConfigProvider, theme } from "antd";
 import { queryClient } from "./api/client";
 import { router } from "./router";
-import { ConfigProvider, theme } from "antd";
 
 function App() {
 	return (

@@ -16,5 +16,12 @@
 				"noExplicitAny": "off"
 			}
 		}
+	},
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
 	}
 }

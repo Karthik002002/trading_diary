@@ -1,15 +1,14 @@
-import { useState, useMemo } from "react";
 import { createColumnHelper } from "@tanstack/react-table";
-
-import {
-	useStrategies,
-	useCreateStrategy,
-	useUpdateStrategy,
-	useDeleteStrategy,
-} from "../../hooks/useResources";
-import { FaEdit, FaTrash, FaPlus } from "react-icons/fa";
-import { VirtualTable } from "../VirtualTable";
 import { Button, Input, Modal } from "antd";
+import { useMemo, useState } from "react";
+import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
+import {
+	useCreateStrategy,
+	useDeleteStrategy,
+	useStrategies,
+	useUpdateStrategy,
+} from "../../hooks/useResources";
+import { VirtualTable } from "../VirtualTable";
 
 const StrategyManager = () => {
 	const { data: strategies, isLoading } = useStrategies();

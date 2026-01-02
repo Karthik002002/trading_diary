@@ -1,5 +1,5 @@
+import { Button, Form, Input, Modal } from "antd";
 import { useState } from "react";
-import { Button, Input, Modal, Form } from "antd";
 import { useCreateSymbol } from "../../hooks/useResources";
 
 interface CreateSymbolModalProps {

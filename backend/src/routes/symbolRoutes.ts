@@ -1,10 +1,10 @@
-import express, { Request, Response } from "express";
+import express, { type Request, type Response } from "express";
+import { validateRequest } from "../middleware/validateRequest";
 import Symbol from "../models/symbol";
 import {
 	createSymbolValidator,
 	updateSymbolValidator,
 } from "../validators/symbolValidators";
-import { validateRequest } from "../middleware/validateRequest";
 
 const router = express.Router();
 

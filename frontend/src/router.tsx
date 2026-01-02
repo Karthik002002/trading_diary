@@ -1,7 +1,7 @@
 import {
-	createRouter,
-	createRoute,
 	createRootRoute,
+	createRoute,
+	createRouter,
 } from "@tanstack/react-router";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
@@ -19,6 +19,8 @@ const dashboardSearchSchema = z.object({
 	strategy_id: z.number().optional(),
 	outcome: z.string().optional(),
 	search: z.string().optional(),
+	from: z.string().optional(),
+	to: z.string().optional(),
 });
 
 const indexRoute = createRoute({

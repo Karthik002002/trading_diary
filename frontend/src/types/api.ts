@@ -28,6 +28,7 @@ export interface Trade {
 	entry_execution: string;
 	exit_execution: string;
 	emotional_state: string;
+	status?: string;
 	timeframe_photos: { type: string; photo: string }[];
 	createdAt?: string;
 	updatedAt?: string;
@@ -89,3 +90,13 @@ export interface PerformanceMetric {
 	totalReturns: number;
 	maxDrawdown: number;
 }
+
+export type TFilters = {
+	strategy_id?: string;
+	outcome?: string;
+	search?: string;
+	symbol?: string;
+	portfolio_id?: string;
+	status?: string;
+	tags?: string[];
+};

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
-
-import type { Trade } from "../hooks/useTrades";
-import { BACKEND_URL } from "../api/client";
 import { Modal } from "antd";
+import type React from "react";
+import { useCallback, useEffect, useState } from "react";
+import { BACKEND_URL } from "../api/client";
+import type { Trade } from "../hooks/useTrades";
 
 interface ImageViewerModalProps {
 	isOpen: boolean;

@@ -1,6 +1,6 @@
-import express, { Request, Response } from "express";
-import Portfolio from "../models/portfolio";
+import express, { type Request, type Response } from "express";
 import { validateRequest } from "../middleware/validateRequest";
+import Portfolio from "../models/portfolio";
 import {
 	createPortfolioValidator,
 	updatePortfolioValidator,

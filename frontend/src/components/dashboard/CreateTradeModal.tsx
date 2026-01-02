@@ -1,44 +1,46 @@
-import React, { Fragment, useEffect, useMemo, useState } from "react";
 import {
-	Modal,
-	Button,
-	Form,
-	InputNumber,
-	Select,
-	DatePicker,
-	Upload,
-	Input,
-	Switch,
-	Typography,
-	Collapse,
-	Flex,
-	message,
-} from "antd";
-import {
-	UploadOutlined,
-	PlusOutlined,
 	DeleteOutlined,
+	PlusOutlined,
+	UploadOutlined,
 } from "@ant-design/icons";
-import { useForm, Controller, useFieldArray, useWatch } from "react-hook-form";
-
-import dayjs from "dayjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+	Button,
+	Collapse,
+	DatePicker,
+	Flex,
+	Form,
+	Input,
+	InputNumber,
+	Modal,
+	message,
+	Select,
+	type SelectProps,
+	Switch,
+	Typography,
+	Upload,
+} from "antd";
+import dayjs from "dayjs";
+import { debounce } from "lodash";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
+import { FaPaste } from "react-icons/fa";
+import { queryClient } from "../../api/client";
+import {
+	usePortfolios,
+	useStrategies,
+	useTags,
+} from "../../hooks/useResources";
+import {
+	type Trade,
 	useCreateTrade,
 	useSymbols,
 	useUpdateTrade,
-	type Trade,
 } from "../../hooks/useTrades";
-import {
-	useStrategies,
-	usePortfolios,
-	useTags,
-} from "../../hooks/useResources";
-import { tradeSchema, type TradeFormValues } from "./schema";
-import { FaPaste } from "react-icons/fa";
-import { CreateSymbolModal } from "../settings/CreateSymbolModal";
 import { usePreferenceStore } from "../../store/preferenceStore";
-import { debounce } from "lodash";
+import { CreateSymbolModal } from "../settings/CreateSymbolModal";
+import { type TradeFormValues, tradeSchema } from "./schema";
 
 interface Props {
 	isOpen: boolean;
@@ -71,8 +73,8 @@ const CreateTradeModal: React.FC<Props> = ({
 		handleSubmit,
 		reset,
 		formState: { isDirty },
-	} = useForm<TradeFormValues>({
-		resolver: zodResolver(tradeSchema as any),
+	} = useForm({
+		resolver: zodResolver(tradeSchema),
 		defaultValues: {
 			strategy_id: 1,
 			portfolio_id: null,
@@ -167,7 +169,7 @@ const CreateTradeModal: React.FC<Props> = ({
 								type: tp.type,
 								photo: tp.photo,
 							}))
-						: [{ type: "30m", photo: null }],
+						: [{ type: "4h", photo: null }],
 				status: (tradeToEdit as any).status ?? "NIN",
 			});
 		}
@@ -177,7 +179,6 @@ const CreateTradeModal: React.FC<Props> = ({
 		}
 	}, [isOpen, tradeToEdit, reset]);
 
-	/** Submit */
 	const onSubmit = (values: TradeFormValues) => {
 		const data = new FormData();
 		console.log(data, values);
@@ -238,7 +239,12 @@ const CreateTradeModal: React.FC<Props> = ({
 		if (tradeToEdit) {
 			updateMutation.mutate(
 				{ id: tradeToEdit._id, data },
-				{ onSuccess: onClose },
+				{
+					onSuccess: () => {
+						queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
+						onClose();
+					},
+				},
 			);
 		} else {
 			createMutation.mutate(data, { onSuccess: onClose });
@@ -263,6 +269,27 @@ const CreateTradeModal: React.FC<Props> = ({
 				onClose();
 			},
 		});
+	};
+	const customSymbolFilter: SelectProps["filterOption"] = (input, option) => {
+		if (!option) return false;
+
+		const search = input.toLowerCase();
+
+		// Extract text from label (string | ReactNode)
+		const labelText =
+			typeof option.label === "string"
+				? option.label
+				: typeof option.label === "number"
+					? option.label.toString()
+					: // ReactNode case (e.g. <span>...</span>)
+						((option.label as any)?.props?.children?.toString?.() ?? "");
+
+		const valueText = option.value?.toString?.() ?? "";
+
+		return (
+			labelText.toLowerCase().includes(search) ||
+			valueText.toLowerCase().includes(search)
+		);
 	};
 
 	return (
@@ -398,7 +425,7 @@ const CreateTradeModal: React.FC<Props> = ({
 																value: -1,
 															},
 														]}
-														showSearch
+														showSearch={{ filterOption: customSymbolFilter }}
 														onChange={(value) => {
 															if (value === -1) {
 																setPendingSymbolFieldChange(

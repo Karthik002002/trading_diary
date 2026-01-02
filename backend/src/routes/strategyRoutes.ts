@@ -1,6 +1,6 @@
-import express, { Request, Response } from "express";
-import Strategy from "../models/strategy";
+import express, { type Request, type Response } from "express";
 import { validateRequest } from "../middleware/validateRequest";
+import Strategy from "../models/strategy";
 import {
 	createStrategyValidator,
 	updateStrategyValidator,

@@ -1,7 +1,7 @@
-import express from "express";
-import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import express from "express";
+import mongoose from "mongoose";
 
 dotenv.config();
 
@@ -10,11 +10,11 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI =
 	process.env.MONGO_URI || "mongodb://localhost:27017/tradingdiary";
 
-import tradeRoutes from "./routes/tradeRoutes";
-import strategyRoutes from "./routes/strategyRoutes";
 import portfolioRoutes from "./routes/portfolioRoutes";
+import strategyRoutes from "./routes/strategyRoutes";
 import symbolRoutes from "./routes/symbolRoutes";
 import tagRoutes from "./routes/tagRoutes";
+import tradeRoutes from "./routes/tradeRoutes";
 
 app.use(cors());
 app.use(express.json());

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
 import { Outlet } from "@tanstack/react-router";
-import Sidebar from "./Sidebar";
+import { useEffect, useState } from "react";
 import RefetchFloatingButton from "./RefetchFloatingButton";
+import Sidebar from "./Sidebar";
 
 const Layout = () => {
 	const savedState = localStorage.getItem("isCollapsed");
