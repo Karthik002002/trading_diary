@@ -3,12 +3,18 @@ import mongoose, { type Document, Schema } from "mongoose";
 export interface IPortfolio extends Document {
 	id: number;
 	name: string;
+	balance: number;
 }
 
 const PortfolioSchema: Schema = new Schema(
 	{
 		id: { type: Number, unique: true },
 		name: { type: String, required: true },
+		balance: {
+			type: Number,
+			required: true,
+			default: 0
+		}
 	},
 	{
 		timestamps: true,

@@ -12,9 +12,11 @@ import {
 	usePerformanceMetrics,
 	useStrategies,
 	useSymbols,
+	useUpdateStrategy,
 } from "../hooks/useTrades";
 import { usePreferenceStore } from "../store/preferenceStore";
 import { useFilterStore } from "../store/useFilterStore";
+
 
 const Dashboard: React.FC = () => {
 	const [isOpen, setIsOpen] = useState(false);
@@ -23,6 +25,7 @@ const Dashboard: React.FC = () => {
 	const navigate = useNavigate();
 	const setStoreFilters = useFilterStore((state) => state.setFilters);
 	const { dashboardDisplayState } = usePreferenceStore();
+	const updateStrategyMutation = useUpdateStrategy();
 	const filters = {
 		strategy_id: search.strategy_id,
 		outcome: search.outcome,
@@ -274,12 +277,22 @@ const Dashboard: React.FC = () => {
 						tooltip={`Max Drawdown - ${performanceMetric?.totalTrades ?? 0} Trades`}
 					/>
 				)}
+				{dashboardDisplayState.consistencyScore && (
+					<RenderCard
+						title="Cons Score"
+						data={performanceMetric?.consistencyScore ?? 0}
+						tooltip={`Consistency Score - ${performanceMetric?.totalTrades ?? 0} Trades`}
+					/>
+				)}
 			</Row>
 			<div className="bg-surface rounded-2xl p-1  shadow-2xl overflow-hidden relative">
 				<TradeTable />
 			</div>
 
 			<PnlCalendar />
+
+
+
 
 			<CreateTradeModal
 				isOpen={isOpen}
@@ -289,6 +302,8 @@ const Dashboard: React.FC = () => {
 				}}
 				initialFile={pastedFile}
 			/>
+
+
 		</div>
 	);
 };

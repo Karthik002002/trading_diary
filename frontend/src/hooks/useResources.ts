@@ -146,3 +146,39 @@ export const useDeletePortfolio = () => {
 			queryClient.invalidateQueries({ queryKey: ["portfolios"] }),
 	});
 };
+
+// --- Portfolio Transactions ---
+export const usePortfolioTransactions = (portfolioId: number | null) =>
+	useQuery({
+		queryKey: ["portfolio-transactions", portfolioId],
+		queryFn: () => fetchData(`portfolios/${portfolioId}/transactions`),
+		enabled: !!portfolioId,
+	});
+
+export const usePortfolioPayin = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ id, data }: { id: number; data: any }) =>
+			createItem(`portfolios/${id}/payin`, data),
+		onSuccess: (_, { id }) => {
+			queryClient.invalidateQueries({ queryKey: ["portfolios"] });
+			queryClient.invalidateQueries({
+				queryKey: ["portfolio-transactions", id],
+			});
+		},
+	});
+};
+
+export const usePortfolioPayout = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ id, data }: { id: number; data: any }) =>
+			createItem(`portfolios/${id}/payout`, data),
+		onSuccess: (_, { id }) => {
+			queryClient.invalidateQueries({ queryKey: ["portfolios"] });
+			queryClient.invalidateQueries({
+				queryKey: ["portfolio-transactions", id],
+			});
+		},
+	});
+};

@@ -16,6 +16,7 @@ import symbolRoutes from "./routes/symbolRoutes";
 import tagRoutes from "./routes/tagRoutes";
 import tradeRoutes from "./routes/tradeRoutes";
 
+
 app.use(cors());
 app.use(express.json());
 

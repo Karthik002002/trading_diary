@@ -38,6 +38,21 @@ services:
     volumes:
       - mongo-data:/data/db
 
+  mongo-backup:
+    image: mongo:latest
+    restart: always
+    volumes:
+      - ./backups:/backup
+    depends_on:
+      - mongo
+    entrypoint: >
+      /bin/sh -c ' while true; do
+        echo "Starting backup $(date)"
+        mongodump --host mongo --db tradingdiary --archive=/backup/backup-$(date +%Y-%m-%d-%H%M%S).gz --gzip
+        echo "Backup completed. Waiting 24 hours..."
+        sleep 86400
+      done'
+
 volumes:
   mongo-data:
   frontend-node-modules:

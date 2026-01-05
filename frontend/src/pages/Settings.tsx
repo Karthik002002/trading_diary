@@ -5,6 +5,7 @@ import {
 	Input,
 	InputNumber,
 	message,
+	Select,
 	Switch,
 	Tabs,
 	Tooltip,
@@ -18,6 +19,7 @@ import {
 	type TDashboardDisplayState,
 	usePreferenceStore,
 } from "../store/preferenceStore";
+import { usePortfolios, useStrategies, useSymbols } from "../hooks/useResources";
 
 const Settings = () => {
 	const [activeKey, setActiveKey] = useState<string>("general");
@@ -27,9 +29,10 @@ const Settings = () => {
 			key: "general",
 			label: "General",
 			children: (
-				<div className="p-2 max-w-full flex flex-col gap-2">
+				<div className="p-2 max-w-full flex flex-col gap-2 max-h-[500px] overflow-y-auto">
 					<DashboardPreference />
 					<MaxLoss />
+					<DataPreference />
 				</div>
 			),
 		},
@@ -144,7 +147,7 @@ const MaxLoss = () => {
 				message.success("Max loss updated");
 				setMaxLoss(value);
 			}, 500),
-		[],
+		[setMaxLoss],
 	);
 	const handleDefaultQtyDebounce = useMemo(
 		() =>
@@ -152,11 +155,11 @@ const MaxLoss = () => {
 				message.success("Default quantity updated");
 				setDefaultQuantity(value);
 			}, 500),
-		[],
+		[setDefaultQuantity],
 	);
 
 	return (
-		<Flex gap={10} align="center" className="!pb-2">
+		<Flex gap={10} align="center" className="pb-2!">
 			<div>
 				Max Loss %{" "}
 				<Tooltip title="Max loss percentage, this will be applied on the trade entry form.">
@@ -184,10 +187,53 @@ const MaxLoss = () => {
 						handleDefaultQtyDebounce(e.target.value);
 					}}
 					type="number"
-					className="max-w-[100px]"
+					className="max-w-25"
 					placeholder="Enter default quantity"
 				/>
 			</div>
+		</Flex>
+	);
+};
+
+const DataPreference = () => {
+	const { dataPreference, setDataPreference } = usePreferenceStore();
+	const { data: portfolioData } = usePortfolios()
+	const { data: strategyData } = useStrategies()
+	// const data 
+	return (
+		<Flex vertical>
+			<h2 className="text-xl font-semibold mb-4">Data Preference ( Default Filters ) </h2>
+			<Form layout="vertical" className="grid grid-cols-16 gap-4">
+				<Form.Item label="Portfolio" className="col-span-2">
+					<Select
+						options={portfolioData?.map((p: any) => ({
+							value: p.id,
+							label: p.name,
+						}))}
+						placeholder="Select portfolio"
+						value={dataPreference.portfolio_id}
+						onChange={(e) =>
+							setDataPreference("portfolio_id", e)
+						}
+						style={{ width: "100%" }}
+					/>
+				</Form.Item>
+
+				<Form.Item label="Strategy" className="col-span-2">
+					<Select
+						options={strategyData?.map((p: any) => ({
+							value: p.id,
+							label: p.name,
+						}))}
+						placeholder="Select strategy"
+						value={dataPreference.strategy_id }
+						onChange={(e) =>
+							setDataPreference("strategy_id", e)
+						}
+						style={{ width: "100%" }}
+					/>
+				</Form.Item>
+			</Form>
 		</Flex>
 	);
 };

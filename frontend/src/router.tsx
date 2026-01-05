@@ -2,6 +2,7 @@ import {
 	createRootRoute,
 	createRoute,
 	createRouter,
+	useSearch,
 } from "@tanstack/react-router";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
@@ -12,6 +13,7 @@ const rootRoute = createRootRoute({
 });
 
 import { z } from "zod";
+import { preferenceStore, usePreferenceStore } from "./store/preferenceStore";
 
 const dashboardSearchSchema = z.object({
 	page: z.number().optional().default(1),
@@ -28,12 +30,28 @@ const indexRoute = createRoute({
 	path: "/",
 	component: Dashboard,
 	validateSearch: dashboardSearchSchema,
+	// beforeLoad: ({ search }) => {
+	// 	const { dataPreference } = preferenceStore.getState();
+
+	// 	console.log(dataPreference)
+	// 	if (!search.strategy_id) {
+	// 		search.strategy_id = Number(dataPreference.strategy_id);
+	// 	}
+
+
+	// 	if (!search.port) {
+	// 		search.strategy_id = Number(search.strategy_id);
+	// 	}
+
+	// 	return { search };
+	// },
 });
 
 const settingsRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/settings",
 	component: Settings,
+
 });
 
 const routeTree = rootRoute.addChildren([indexRoute, settingsRoute]);

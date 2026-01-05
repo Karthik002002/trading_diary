@@ -95,6 +95,24 @@ export const fetchStrategies = async (): Promise<Strategy[]> => {
 	return response.json();
 };
 
+export const updateStrategy = async (
+	id: number,
+	strategyData: Partial<Strategy>,
+): Promise<Strategy> => {
+	const response = await fetch(`${BASE_URL}/strategies/${id}`, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(strategyData),
+	});
+	if (!response.ok) {
+		const errorData = await response.json();
+		throw new Error(errorData.message || "Failed to update strategy");
+	}
+	return response.json();
+};
+
 export const fetchTags = async (
 	search?: string,
 ): Promise<{ _id: string; name: string }[]> => {

@@ -14,6 +14,11 @@ export type TDashboardDisplayState =
 	| "worstTrade"
 	| "maxPnl"
 	| "minPnl";
+type TDataPReference = "portfolio_id" | "strategy_id";
+export type TDataPReferences = Record<
+	TDataPReference,
+	string | number | undefined
+>;
 export type TPreferenceStore = {
 	defaultQuantity: string;
 	setDefaultQuantity: (quantity: string) => void;
@@ -25,9 +30,14 @@ export type TPreferenceStore = {
 	) => void;
 	maxLoss: string;
 	setMaxLoss: (maxLoss: string) => void;
+	dataPreference: TDataPReferences;
+	setDataPreference: (
+		s: TDataPReference,
+		value: number | string | undefined,
+	) => void;
 };
 
-const preferenceStore = create<TPreferenceStore>()(
+export const preferenceStore = create<TPreferenceStore>()(
 	persist(
 		(set) => ({
 			defaultQuantity: localStorage.getItem("defaultQuantity") || "",
@@ -77,6 +87,13 @@ const preferenceStore = create<TPreferenceStore>()(
 				}),
 			maxLoss: "",
 			setMaxLoss: (maxLoss: string) => set({ maxLoss: maxLoss }),
+			dataPreference: { portfolio_id: undefined, strategy_id: undefined },
+			setDataPreference: (s, value) =>
+				set((prev) => {
+					const prevDataPreference = { ...prev.dataPreference };
+					prevDataPreference[s] = value;
+					return { dataPreference: prevDataPreference };
+				}),
 		}),
 
 		{

@@ -13,6 +13,7 @@ import {
 	fetchSymbols,
 	fetchTrades,
 	updateTrade,
+	updateStrategy,
 } from "../api/client";
 import type {
 	PnlCalendarDay,
@@ -117,5 +118,17 @@ export const usePerformanceMetrics = ({
 	return useQuery({
 		queryKey: ["performance-metric", filters],
 		queryFn: () => fetchPerformanceMetric(filters),
+	});
+};
+
+export const useUpdateStrategy = () => {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ id, data }: { id: number; data: Partial<Strategy> }) =>
+			updateStrategy(id, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["strategies"] });
+		},
 	});
 };

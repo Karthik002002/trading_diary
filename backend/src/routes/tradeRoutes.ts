@@ -6,6 +6,7 @@ import {
 	createTradeValidator,
 	updateTradeValidator,
 } from "../validators/tradeValidators";
+import Portfolio from "../models/portfolio";
 
 const router = express.Router();
 
@@ -244,20 +245,20 @@ router.get("/stats/execution-metric", async (req: Request, res: Response) => {
 				entryEfficiency:
 					execution.totalTrades > 0
 						? Number(
-								(
-									(execution.perfectEntries / execution.totalTrades) *
-									100
-								).toFixed(2),
-							)
+							(
+								(execution.perfectEntries / execution.totalTrades) *
+								100
+							).toFixed(2),
+						)
 						: 0,
 				exitEfficiency:
 					execution.totalTrades > 0
 						? Number(
-								(
-									(execution.perfectExits / execution.totalTrades) *
-									100
-								).toFixed(2),
-							)
+							(
+								(execution.perfectExits / execution.totalTrades) *
+								100
+							).toFixed(2),
+						)
 						: 0,
 			},
 			mistakes: {
@@ -399,6 +400,18 @@ router.post(
 
 			const trade = new Trade(req.body);
 			const savedTrade = await trade.save();
+
+			// Update Portfolio Balance if applicable
+			if (savedTrade.portfolio_id && savedTrade.pl) {
+				const portfolio = await Portfolio.findOne({
+					id: savedTrade.portfolio_id,
+				});
+				if (portfolio) {
+					portfolio.balance += savedTrade.pl;
+					await portfolio.save();
+				}
+			}
+
 			res.status(201).json(savedTrade);
 		} catch (error: any) {
 			res.status(400).json({ message: error.message });
@@ -525,8 +538,42 @@ router.put(
 				}
 			}
 
+			const oldPl = trade.pl || 0;
+			const oldPortfolioId = trade.portfolio_id;
+
 			Object.assign(trade, req.body);
 			const updatedTrade = await trade.save(); // save() triggers the pre-save hook for PL calc
+
+			// Sync Portfolio Balance
+			const newPl = updatedTrade.pl || 0;
+			const newPortfolioId = updatedTrade.portfolio_id;
+
+			if (oldPortfolioId === newPortfolioId) {
+				if (newPortfolioId && oldPl !== newPl) {
+					const portfolio = await Portfolio.findOne({ id: newPortfolioId });
+					if (portfolio) {
+						portfolio.balance += newPl - oldPl;
+						await portfolio.save();
+					}
+				}
+			} else {
+				// Portfolio changed
+				if (oldPortfolioId) {
+					const oldPortfolio = await Portfolio.findOne({ id: oldPortfolioId });
+					if (oldPortfolio) {
+						oldPortfolio.balance -= oldPl;
+						await oldPortfolio.save();
+					}
+				}
+				if (newPortfolioId) {
+					const newPortfolio = await Portfolio.findOne({ id: newPortfolioId });
+					if (newPortfolio) {
+						newPortfolio.balance += newPl;
+						await newPortfolio.save();
+					}
+				}
+			}
+
 			res.json(updatedTrade);
 		} catch (error: any) {
 			res.status(400).json({ message: error.message });
@@ -537,8 +584,19 @@ router.put(
 // Delete trade
 router.delete("/:id", async (req: Request, res: Response) => {
 	try {
-		const trade = await Trade.findByIdAndDelete(req.params.id);
+		const trade = await Trade.findById(req.params.id);
 		if (!trade) return res.status(404).json({ message: "Trade not found" });
+
+		// Revert Portfolio Balance
+		if (trade.portfolio_id && trade.pl) {
+			const portfolio = await Portfolio.findOne({ id: trade.portfolio_id });
+			if (portfolio) {
+				portfolio.balance -= trade.pl;
+				await portfolio.save();
+			}
+		}
+
+		await Trade.findByIdAndDelete(req.params.id);
 		res.json({ message: "Trade deleted" });
 	} catch (error: any) {
 		res.status(500).json({ message: error.message });

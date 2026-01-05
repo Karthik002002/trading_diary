@@ -1,7 +1,7 @@
 import { createColumnHelper } from "@tanstack/react-table";
 import { Button, Input, Modal } from "antd";
 import { useMemo, useState } from "react";
-import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
+import { FaEdit, FaTrash } from "react-icons/fa";
 import {
 	useCreateStrategy,
 	useDeleteStrategy,
@@ -9,6 +9,7 @@ import {
 	useUpdateStrategy,
 } from "../../hooks/useResources";
 import { VirtualTable } from "../VirtualTable";
+import StrategyEditor from "../../editor";
 
 const StrategyManager = () => {
 	const { data: strategies, isLoading } = useStrategies();
@@ -60,7 +61,16 @@ const StrategyManager = () => {
 			columnHelper.accessor("name", { header: "Name" }),
 			columnHelper.accessor("description", {
 				header: "Description",
-				cell: (info) => info.getValue() || "-",
+				cell: (info) => {
+					const val = info.getValue();
+					if (!val) return "-";
+					if (val.startsWith("{")) {
+						return (
+							<span className="text-gray-400 italic">Rich text content</span>
+						);
+					}
+					return val.length > 50 ? `${val.substring(0, 50)}...` : val;
+				},
 			}),
 			columnHelper.display({
 				id: "actions",
@@ -101,6 +111,7 @@ const StrategyManager = () => {
 				open={isOpen}
 				onCancel={handleClose}
 				closable
+				width={800}
 				title={editingId ? "Edit Strategy" : "New Strategy"}
 				footer={
 					<>
@@ -117,22 +128,26 @@ const StrategyManager = () => {
 					</>
 				}
 			>
-				<Input
-					placeholder="Enter name"
-					value={formData.name}
-					onChange={(e) =>
-						setFormData({ ...formData, name: e.currentTarget.value })
-					}
-					style={{ marginBottom: "10px" }}
-				/>
+				<div className="mb-4">
+					<label className="block text-sm font-medium mb-1">Strategy Name</label>
+					<Input
+						placeholder="Enter name"
+						value={formData.name}
+						onChange={(e) =>
+							setFormData({ ...formData, name: e.currentTarget.value })
+						}
+					/>
+				</div>
 
-				<Input
-					placeholder="Enter description"
-					value={formData.description}
-					onChange={(e) =>
-						setFormData({ ...formData, description: e.currentTarget.value })
-					}
-				/>
+				<div className="mt-4">
+					<StrategyEditor
+						key={isOpen ? (editingId ?? "new") : "closed"}
+						initialContent={formData.description}
+						onSave={(content) =>
+							setFormData((prev) => ({ ...prev, description: content }))
+						}
+					/>
+				</div>
 			</Modal>
 		</div>
 	);

@@ -5,6 +5,7 @@ import {
 	createPortfolioValidator,
 	updatePortfolioValidator,
 } from "../validators/portfolioValidators";
+import PortfolioTransaction from "../models/portfolioTransaction";
 
 const router = express.Router();
 
@@ -67,6 +68,85 @@ router.put(
 		}
 	},
 );
+
+// Create a PAYIN transaction
+router.post("/:id/payin", async (req: Request, res: Response) => {
+	try {
+		const portfolioIdNum = parseInt(req.params.id);
+		const portfolio = await Portfolio.findOne({ id: portfolioIdNum });
+		if (!portfolio) {
+			return res.status(404).json({ message: "Portfolio not found" });
+		}
+
+		const { amount, note, before_open } = req.body;
+
+		const transaction = new PortfolioTransaction({
+			portfolioId: portfolio._id,
+			type: "PAYIN",
+			amount,
+			note,
+			before_open,
+		});
+
+		await transaction.save();
+
+		portfolio.balance += Number(amount);
+		await portfolio.save();
+
+		res.status(201).json({ portfolio, transaction });
+	} catch (error: any) {
+		res.status(400).json({ message: error.message });
+	}
+});
+
+// Create a PAYOUT transaction
+router.post("/:id/payout", async (req: Request, res: Response) => {
+	try {
+		const portfolioIdNum = parseInt(req.params.id);
+		const portfolio = await Portfolio.findOne({ id: portfolioIdNum });
+		if (!portfolio) {
+			return res.status(404).json({ message: "Portfolio not found" });
+		}
+
+		const { amount, note, before_open } = req.body;
+
+		const transaction = new PortfolioTransaction({
+			portfolioId: portfolio._id,
+			type: "PAYOUT",
+			amount,
+			note,
+			before_open,
+		});
+
+		await transaction.save();
+
+		portfolio.balance -= Number(amount);
+		await portfolio.save();
+
+		res.status(201).json({ portfolio, transaction });
+	} catch (error: any) {
+		res.status(400).json({ message: error.message });
+	}
+});
+
+// Get transactions for a portfolio
+router.get("/:id/transactions", async (req: Request, res: Response) => {
+	try {
+		const portfolioIdNum = parseInt(req.params.id);
+		const portfolio = await Portfolio.findOne({ id: portfolioIdNum });
+		if (!portfolio) {
+			return res.status(404).json({ message: "Portfolio not found" });
+		}
+
+		const transactions = await PortfolioTransaction.find({
+			portfolioId: portfolio._id,
+		}).sort({ createdAt: -1 });
+
+		res.json(transactions);
+	} catch (error: any) {
+		res.status(500).json({ message: error.message });
+	}
+});
 
 // Delete portfolio
 router.delete("/:id", async (req: Request, res: Response) => {
