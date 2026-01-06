@@ -439,7 +439,7 @@ router.get("/", async (req: Request, res: Response) => {
 			Trade.countDocuments(query),
 		]);
 
-		trades.forEach((trade) => {
+		trades.map((trade) => {
 			return {
 				...trade,
 				timeframe_photos: trade.timeframe_photos.map((pht) => ({

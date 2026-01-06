@@ -73,19 +73,20 @@ router.put(
 router.post("/:id/payin", async (req: Request, res: Response) => {
 	try {
 		const portfolioIdNum = parseInt(req.params.id);
+
 		const portfolio = await Portfolio.findOne({ id: portfolioIdNum });
 		if (!portfolio) {
 			return res.status(404).json({ message: "Portfolio not found" });
 		}
-
-		const { amount, note, before_open } = req.body;
+		const { amount, note } = req.body;
+		const { balance } = portfolio.toJSON();
 
 		const transaction = new PortfolioTransaction({
 			portfolioId: portfolio._id,
 			type: "PAYIN",
 			amount,
 			note,
-			before_open,
+			balance,
 		});
 
 		await transaction.save();
