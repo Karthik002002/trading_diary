@@ -15,6 +15,7 @@ import strategyRoutes from "./routes/strategyRoutes";
 import symbolRoutes from "./routes/symbolRoutes";
 import tagRoutes from "./routes/tagRoutes";
 import tradeRoutes from "./routes/tradeRoutes";
+import graphRouter from "./routes/graphRouter";
 
 
 app.use(cors());
@@ -30,6 +31,7 @@ app.use("/api/strategies", strategyRoutes);
 app.use("/api/portfolios", portfolioRoutes);
 app.use("/api/symbols", symbolRoutes);
 app.use("/api/tags", tagRoutes);
+app.use("/api/graph", graphRouter);
 
 app.use("/uploads", express.static("uploads"));
 
