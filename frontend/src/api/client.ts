@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryCache, QueryClient } from "@tanstack/react-query";
 import type {
 	PerformanceMetric,
 	PnlCalendarDay,
@@ -7,6 +7,7 @@ import type {
 	TFilters,
 	TradeResponse,
 } from "../types/api";
+import { message } from "antd";
 
 export const queryClient = new QueryClient({
 	defaultOptions: {
@@ -15,6 +16,14 @@ export const queryClient = new QueryClient({
 			retry: 1,
 		},
 	},
+	queryCache: new QueryCache({
+		onError: (error) => {
+
+			message.error(error.message ?? JSON.stringify(error));
+
+		},
+	}),
+
 });
 
 const BASE_URL = "http://localhost:5000/api";

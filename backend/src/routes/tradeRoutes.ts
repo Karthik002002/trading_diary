@@ -7,12 +7,10 @@ import {
 	updateTradeValidator,
 } from "../validators/tradeValidators";
 import Portfolio from "../models/portfolio";
-
-const router = express.Router();
-
 import mongoose from "mongoose";
 import { upload } from "../middleware/uploadMiddleware";
 
+const router = express.Router();
 const buildTradeQuery = (query: any) => {
 	const { strategy_id, outcome, search, symbol, portfolio_id, status, tags } =
 		query;
@@ -245,20 +243,20 @@ router.get("/stats/execution-metric", async (req: Request, res: Response) => {
 				entryEfficiency:
 					execution.totalTrades > 0
 						? Number(
-							(
-								(execution.perfectEntries / execution.totalTrades) *
-								100
-							).toFixed(2),
-						)
+								(
+									(execution.perfectEntries / execution.totalTrades) *
+									100
+								).toFixed(2),
+							)
 						: 0,
 				exitEfficiency:
 					execution.totalTrades > 0
 						? Number(
-							(
-								(execution.perfectExits / execution.totalTrades) *
-								100
-							).toFixed(2),
-						)
+								(
+									(execution.perfectExits / execution.totalTrades) *
+									100
+								).toFixed(2),
+							)
 						: 0,
 			},
 			mistakes: {
@@ -335,6 +333,10 @@ router.post(
 				const mainPhoto = files.find((f) => f.fieldname === "photo");
 				if (mainPhoto) {
 					req.body.photo = mainPhoto.path;
+				}
+				const beforePhoto = files.find((f) => f.fieldname === "before_photo");
+				if (beforePhoto) {
+					req.body.before_photo = beforePhoto.path;
 				}
 
 				if (
@@ -492,7 +494,10 @@ router.put(
 				if (mainPhoto) {
 					req.body.photo = mainPhoto.path;
 				}
-
+				const beforePhoto = files.find((f) => f.fieldname === "before_photos");
+				if (beforePhoto) {
+					req.body.before_photo = beforePhoto.path;
+				}
 				if (
 					req.body.rule_violations &&
 					typeof req.body.rule_violations === "string"

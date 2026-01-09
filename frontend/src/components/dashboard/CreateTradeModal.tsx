@@ -73,6 +73,7 @@ const CreateTradeModal: React.FC<Props> = ({
 		handleSubmit,
 		reset,
 		formState: { isDirty },
+		getValues,
 	} = useForm({
 		resolver: zodResolver(tradeSchema),
 		defaultValues: {
@@ -209,6 +210,18 @@ const CreateTradeModal: React.FC<Props> = ({
 				values.photo instanceof File
 					? values.photo.name
 					: "clipboard-image.png",
+			);
+		}
+		if (
+			values.before_photo instanceof File ||
+			values.before_photo instanceof Blob
+		) {
+			data.append(
+				"before_photo",
+				values.before_photo,
+				values.before_photo instanceof File
+					? values.before_photo.name
+					: "before-clipboard-image.png",
 			);
 		}
 
@@ -609,6 +622,7 @@ const CreateTradeModal: React.FC<Props> = ({
 													<Select.Option value="win">Win</Select.Option>
 													<Select.Option value="loss">Loss</Select.Option>
 													<Select.Option value="neutral">Neutral</Select.Option>
+													<Select.Option value="missed">Missed</Select.Option>
 												</Select>
 											)}
 										/>
@@ -845,6 +859,49 @@ const CreateTradeModal: React.FC<Props> = ({
 							),
 							children: (
 								<Flex gap={20}>
+									<Form.Item label="Before Photo">
+										<Controller
+											control={control}
+											name="before_photo"
+											render={({ field }) => (
+												<Flex>
+													<Upload
+														beforeUpload={(file) => {
+															field.onChange(file);
+															return false;
+														}}
+														maxCount={1}
+														accept=".png,.jpg,.jpeg"
+													>
+														<Button icon={<UploadOutlined />}>
+															Upload Before Photo
+														</Button>
+													</Upload>
+													{/* paste from clipboard only images */}
+													<Button
+														icon={<FaPaste />}
+														className="ml-2"
+														onClick={async () => {
+															navigator.clipboard.read().then(async (items) => {
+																for (const item of items) {
+																	const imageType = item.types.find(
+																		(type) =>
+																			type === "image/png" ||
+																			type === "image/jpeg",
+																	);
+																	if (imageType) {
+																		const blob = await item.getType(imageType);
+																		field.onChange(blob);
+																		break;
+																	}
+																}
+															});
+														}}
+													></Button>
+												</Flex>
+											)}
+										/>
+									</Form.Item>
 									<Form.Item label="Main Result Photo">
 										<Controller
 											control={control}
@@ -1001,7 +1058,32 @@ const CreateTradeModal: React.FC<Props> = ({
 											))}
 											<Button
 												type="dashed"
-												onClick={() => append({ type: "1h", photo: null })}
+												onClick={() => {
+													const existingValues =
+														getValues().timeframe_photos?.map(
+															(val) => val.type,
+														);
+													const is30MExist = existingValues?.find(
+														(val) => val === "30m",
+													);
+													const is1HExist = existingValues?.find(
+														(val) => val === "1h",
+													);
+													const is4HExist = existingValues?.find(
+														(val) => val === "4h",
+													);
+
+													append({
+														type: is4HExist
+															? "1d"
+															: is1HExist
+																? "4h"
+																: is30MExist
+																	? "1h"
+																	: "30m",
+														photo: null,
+													});
+												}}
 												icon={<PlusOutlined />}
 												style={{ width: "100%", marginTop: 8 }}
 											>

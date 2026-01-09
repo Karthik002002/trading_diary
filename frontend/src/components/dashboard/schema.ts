@@ -19,9 +19,10 @@ export const tradeSchema = z.object({
 	take_profit: z.coerce.number().optional(),
 	entry_reason: z.string().optional(),
 	exit_reason: z.string().optional(),
-	outcome: z.enum(["win", "loss", "neutral"]),
+	outcome: z.enum(["win", "loss", "neutral", "missed"]),
 	tags: z.array(z.string()).optional(),
 	photo: z.any().optional(),
+	before_photo: z.any().optional(),
 	market_condition: z
 		.enum(["trending", "ranging", "volatile", "choppy"])
 		.optional(),

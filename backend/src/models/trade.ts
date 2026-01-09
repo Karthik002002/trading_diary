@@ -55,6 +55,7 @@ const TradeSchema: Schema = new Schema(
 		},
 		entry_reason: { type: String, required: true },
 		photo: { type: String, required: false, default: null },
+		before_photo: { type: String, required: false, default: null },
 		notes: { type: String, required: false, default: null },
 		exit_reason: { type: String, required: true },
 		outcome: { type: String, enum: ["win", "loss", "neutral"], required: true },
