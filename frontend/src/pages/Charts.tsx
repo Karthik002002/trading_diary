@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Spin, Typography, Empty, Select, DatePicker, Button } from "antd";
 import { useTimeseries } from "../hooks/useTimeseries";
 import { useFilterStore } from "../store/useFilterStore";
@@ -7,13 +7,49 @@ import type { TimeseriesDataPoint } from "../types/api";
 import { useStrategies, useSymbols } from "../hooks/useTrades";
 import { usePortfolios } from "../hooks/useResources";
 import dayjs, { Dayjs } from "dayjs";
+import ReactGridLayout, { useContainerWidth } from "react-grid-layout";
+import "react-grid-layout/css/styles.css";
+// import "react-grid-layout/css/resizable.css";
 
 const { RangePicker } = DatePicker;
 
+
+
 const Charts: React.FC = () => {
+    const { width, containerRef } = useContainerWidth();
     const filters = useFilterStore((state) => state);
     const setFilters = useFilterStore((state) => state.setFilters);
     const resetFilters = useFilterStore((state) => state.resetFilters);
+
+    // Default layout configuration
+    const defaultLayout = [
+        { i: "pl-chart", x: 0, y: 0, w: 6, h: 2 },
+        { i: "returns-chart", x: 6, y: 0, w: 6, h: 2 },
+        { i: "trades-chart", x: 0, y: 2, w: 6, h: 2 },
+        { i: "metrics-chart", x: 6, y: 2, w: 6, h: 2 },
+    ];
+
+    // Load layout from localStorage or use default
+    const getInitialLayout = () => {
+        const savedLayout = localStorage.getItem("charts-layout");
+        if (savedLayout) {
+            try {
+                return JSON.parse(savedLayout);
+            } catch (e) {
+                console.error("Failed to parse saved layout:", e);
+                return defaultLayout;
+            }
+        }
+        return defaultLayout;
+    };
+
+    const [layout, setLayout] = useState(getInitialLayout);
+
+    // Save layout to localStorage whenever it changes
+    const handleLayoutChange = (newLayout: any) => {
+        setLayout(newLayout);
+        localStorage.setItem("charts-layout", JSON.stringify(newLayout));
+    };
 
     const { data, isLoading, error } = useTimeseries(filters);
     const { data: strategies, isLoading: strategiesLoading } = useStrategies();
@@ -171,7 +207,7 @@ const Charts: React.FC = () => {
     }
 
     return (
-        <div className="container mx-auto p-0">
+        <div className="container mx-auto p-0" ref={containerRef}>
             {/* Sticky Filter Bar */}
             <div className="sticky top-2 z-1000 grid grid-cols-16 sm:grid-cols-8 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-12 gap-4 p-4 rounded-lg items-end bg-slate-800 mb-6">
                 <div className="col-span-2">
@@ -233,51 +269,70 @@ const Charts: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ReactGridLayout
+                className="layout"
+                layout={layout}
+                width={width}
+                // @ts-ignore - cols is a valid prop for RGL but types might be mismatching
+                cols={12}
+                rowHeight={150}
+                onLayoutChange={handleLayoutChange}
+                isDraggable={true}
+                isResizable={true}
+                draggableHandle=".cursor-move"
+            >
                 {/* Profit/Loss Line Chart */}
-                <ChartComponent
-                    chartType="line"
-                    data={plChartData}
-                    title="Profit/Loss Over Time"
-                    height={350}
-                    xAxisKey="x"
-                    yAxisKey="y"
-                    seriesName="P/L"
-                />
+                <div key="pl-chart" className="cursor-move">
+                    <ChartComponent
+                        chartType="line"
+                        data={plChartData}
+                        title="Profit/Loss Over Time"
+                        height={"100%"}
+                        xAxisKey="x"
+                        yAxisKey="y"
+                        seriesName="P/L"
+                    />
+                </div>
 
                 {/* Returns Area Chart */}
-                <ChartComponent
-                    chartType="area"
-                    data={returnsChartData}
-                    title="Returns Over Time"
-                    height={350}
-                    xAxisKey="x"
-                    yAxisKey="y"
-                    seriesName="Returns (%)"
-                />
+                <div key="returns-chart" className="cursor-move">
+                    <ChartComponent
+                        chartType="area"
+                        data={returnsChartData}
+                        title="Returns Over Time"
+                        height={"100%"}
+                        xAxisKey="x"
+                        yAxisKey="y"
+                        seriesName="Returns (%)"
+                    />
+                </div>
 
                 {/* Total Trades Bar Chart */}
-                <ChartComponent
-                    chartType="bar"
-                    data={tradesChartData}
-                    title="Trades Per Day"
-                    height={350}
-                    xAxisKey="x"
-                    yAxisKey="y"
-                    seriesName="Number of Trades"
-                />
+                <div key="trades-chart" className="cursor-move">
+                    <ChartComponent
+                        chartType="bar"
+                        data={tradesChartData}
+                        title="Trades Per Day"
+                        height={"100%"}
+                        xAxisKey="x"
+                        yAxisKey="y"
+                        seriesName="Number of Trades"
+                    />
+                </div>
 
                 {/* Trading Metrics Pie Chart */}
-                <ChartComponent
-                    chartType="pie"
-                    data={aggregateData}
-                    title="Trading Metrics Distribution"
-                    height={350}
-                    xAxisKey="x"
-                    yAxisKey="y"
-                    seriesName="Metrics"
-                />
-            </div>
+                <div key="metrics-chart" className="cursor-move">
+                    <ChartComponent
+                        chartType="pie"
+                        data={aggregateData}
+                        title="Trading Metrics Distribution"
+                        height={"100%"}
+                        xAxisKey="x"
+                        yAxisKey="y"
+                        seriesName="Metrics"
+                    />
+                </div>
+            </ReactGridLayout>
         </div>
     );
 };

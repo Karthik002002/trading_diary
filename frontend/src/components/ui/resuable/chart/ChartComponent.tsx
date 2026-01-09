@@ -287,14 +287,20 @@ const ChartComponent: React.FC<ChartComponentProps> = ({
     return (
         <Card
             style={{
-                height: "auto",
+                height: "100%",
                 width,
                 background: "rgba(30, 41, 59, 0.5)",
                 border: "1px solid #334155",
+                display: "flex",
+                flexDirection: "column",
             }}
             styles={{
                 body: {
                     padding: "16px",
+                    flex: 1,
+                    minHeight: 0, // Crucial for nested flex scrolling/sizing
+                    display: "flex",
+                    flexDirection: "column",
                 },
             }}
         >
@@ -305,7 +311,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({
             )}
             <ReactECharts
                 option={mergedOptions}
-                style={{ height, width: "100%" }}
+                style={{ height: "100%", width: "100%", flex: 1 }}
                 notMerge={true}
                 lazyUpdate={true}
             />
