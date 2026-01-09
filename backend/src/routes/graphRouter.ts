@@ -90,5 +90,78 @@ graphRouter.post("/timeseries", async (req, res) => {
 })
 
 
+graphRouter.post("/heatmap", async (req, res) => {
+    try {
+        const { filters } = req.body ?? {};
+        const query = filters ? buildFilterQuery(filters) : {};
+
+        const heatmapData = await Trade.aggregate([
+            { $match: query },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$trade_date" } },
+                    count: { $sum: 1 },
+                },
+            },
+            {
+                $project: {
+                    date: "$_id",
+                    count: 1,
+                    _id: 0,
+                },
+            },
+            { $sort: { date: 1 } },
+        ]);
+
+        res.status(200).json(heatmapData);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: "Internal Server Error", error });
+    }
+});
+
+graphRouter.post("/treemap", async (req, res) => {
+    try {
+        const { filters } = req.body ?? {};
+        const query = filters ? buildFilterQuery(filters) : {};
+
+        const treemapData = await Trade.aggregate([
+            { $match: query },
+            { $unwind: "$emotional_state" },
+            {
+                $group: {
+                    _id: { outcome: "$outcome", emotion: "$emotional_state" },
+                    value: { $sum: 1 },
+                },
+            },
+            {
+                $group: {
+                    _id: "$_id.outcome",
+                    children: {
+                        $push: {
+                            name: "$_id.emotion",
+                            value: "$value",
+                        },
+                    },
+                    total: { $sum: "$value" },
+                },
+            },
+            {
+                $project: {
+                    name: "$_id",
+                    value: "$total",
+                    children: 1,
+                    _id: 0,
+                },
+            },
+        ]);
+
+        res.status(200).json(treemapData);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: "Internal Server Error", error });
+    }
+});
+
 
 export default graphRouter;

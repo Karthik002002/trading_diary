@@ -190,3 +190,23 @@ export const fetchTimeseries = async (
 	// The backend returns an array with a facet, extract the timeseries
 	return { timeseries: data[0]?.timeseries || [] };
 };
+
+export const fetchTradeHeatmap = async (filters?: TFilters): Promise<any[]> => {
+	const response = await fetch(`${BASE_URL}/graph/heatmap`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ filters }),
+	});
+	if (!response.ok) throw new Error("Failed to fetch heatmap data");
+	return response.json();
+};
+
+export const fetchEmotionalTreemap = async (filters?: TFilters): Promise<any[]> => {
+	const response = await fetch(`${BASE_URL}/graph/treemap`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ filters }),
+	});
+	if (!response.ok) throw new Error("Failed to fetch treemap data");
+	return response.json();
+};

@@ -1,22 +1,52 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Spin, Typography, Empty, Select, DatePicker, Button } from "antd";
 import { useTimeseries } from "../hooks/useTimeseries";
+import { useEmotionalTreemap, useTradeHeatmap } from "../hooks/useChartsData";
 import { useFilterStore } from "../store/useFilterStore";
 import ChartComponent from "../components/ui/resuable/chart/ChartComponent";
 import type { TimeseriesDataPoint } from "../types/api";
 import { useStrategies, useSymbols } from "../hooks/useTrades";
 import { usePortfolios } from "../hooks/useResources";
 import dayjs, { Dayjs } from "dayjs";
-import ReactGridLayout, { useContainerWidth } from "react-grid-layout";
+import { Responsive as ResponsiveGridLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 // import "react-grid-layout/css/resizable.css";
+
+// Custom hook to ensure robust width measurement
+const useResponsiveWidth = () => {
+    const [width, setWidth] = useState(1200);
+    const containerRef = React.useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const measure = () => {
+            if (containerRef.current) {
+                setWidth(containerRef.current.offsetWidth);
+            }
+        };
+
+        // Measure immediately and after short delays to ensure DOM is ready
+        measure();
+        const timer1 = setTimeout(measure, 100);
+        const timer2 = setTimeout(measure, 500);
+
+        window.addEventListener("resize", measure);
+
+        return () => {
+            window.removeEventListener("resize", measure);
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+        };
+    }, []);
+
+    return { width, containerRef };
+};
 
 const { RangePicker } = DatePicker;
 
 
 
 const Charts: React.FC = () => {
-    const { width, containerRef } = useContainerWidth();
+    const { width, containerRef } = useResponsiveWidth();
     const filters = useFilterStore((state) => state);
     const setFilters = useFilterStore((state) => state.setFilters);
     const resetFilters = useFilterStore((state) => state.resetFilters);
@@ -27,34 +57,41 @@ const Charts: React.FC = () => {
         { i: "returns-chart", x: 6, y: 0, w: 6, h: 2 },
         { i: "trades-chart", x: 0, y: 2, w: 6, h: 2 },
         { i: "metrics-chart", x: 6, y: 2, w: 6, h: 2 },
+        { i: "treemap-chart", x: 0, y: 6, w: 12, h: 3, minH: 3 },
     ];
 
     // Load layout from localStorage or use default
-    const getInitialLayout = () => {
+    const getInitialLayouts = () => {
         const savedLayout = localStorage.getItem("charts-layout");
         if (savedLayout) {
             try {
-                return JSON.parse(savedLayout);
+                const parsed = JSON.parse(savedLayout);
+                if (Array.isArray(parsed)) {
+                    return { lg: parsed };
+                }
+                return parsed;
             } catch (e) {
                 console.error("Failed to parse saved layout:", e);
-                return defaultLayout;
+                return { lg: defaultLayout };
             }
         }
-        return defaultLayout;
+        return { lg: defaultLayout };
     };
 
-    const [layout, setLayout] = useState(getInitialLayout);
+    const [layouts, setLayouts] = useState(getInitialLayouts);
 
     // Save layout to localStorage whenever it changes
-    const handleLayoutChange = (newLayout: any) => {
-        setLayout(newLayout);
-        localStorage.setItem("charts-layout", JSON.stringify(newLayout));
+    const handleLayoutChange = (_currentLayout: any, allLayouts: any) => {
+        setLayouts(allLayouts);
+        localStorage.setItem("charts-layout", JSON.stringify(allLayouts));
     };
 
     const { data, isLoading, error } = useTimeseries(filters);
     const { data: strategies, isLoading: strategiesLoading } = useStrategies();
     const { data: symbols, isLoading: symbolsLoading } = useSymbols();
     const { data: portfolios, isLoading: portfoliosLoading } = usePortfolios();
+    const { data: heatmapData, isLoading: heatmapLoading } = useTradeHeatmap(filters);
+    const { data: treemapData, isLoading: treemapLoading } = useEmotionalTreemap(filters);
 
     const handleFilterChange = (key: string, value: any) => {
         setFilters({ [key]: value });
@@ -71,7 +108,7 @@ const Charts: React.FC = () => {
         }
     };
 
-    if (isLoading) {
+    if (isLoading || strategiesLoading || symbolsLoading || portfoliosLoading || heatmapLoading || treemapLoading) {
         return (
             <div className="container mx-auto p-8 flex items-center justify-center min-h-screen">
                 <Spin size="large" />
@@ -206,6 +243,8 @@ const Charts: React.FC = () => {
         );
     }
 
+
+
     return (
         <div className="container mx-auto p-0" ref={containerRef}>
             {/* Sticky Filter Bar */}
@@ -269,17 +308,14 @@ const Charts: React.FC = () => {
                 </div>
             </div>
 
-            <ReactGridLayout
+            <ResponsiveGridLayout
                 className="layout"
-                layout={layout}
+                layouts={layouts}
                 width={width}
-                // @ts-ignore - cols is a valid prop for RGL but types might be mismatching
-                cols={12}
+                breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
                 rowHeight={150}
                 onLayoutChange={handleLayoutChange}
-                isDraggable={true}
-                isResizable={true}
-                draggableHandle=".cursor-move"
             >
                 {/* Profit/Loss Line Chart */}
                 <div key="pl-chart" className="cursor-move">
@@ -287,7 +323,7 @@ const Charts: React.FC = () => {
                         chartType="line"
                         data={plChartData}
                         title="Profit/Loss Over Time"
-                        height={"100%"}
+                        // height={"100%"} // Let flex container handle it
                         xAxisKey="x"
                         yAxisKey="y"
                         seriesName="P/L"
@@ -300,7 +336,6 @@ const Charts: React.FC = () => {
                         chartType="area"
                         data={returnsChartData}
                         title="Returns Over Time"
-                        height={"100%"}
                         xAxisKey="x"
                         yAxisKey="y"
                         seriesName="Returns (%)"
@@ -313,7 +348,6 @@ const Charts: React.FC = () => {
                         chartType="bar"
                         data={tradesChartData}
                         title="Trades Per Day"
-                        height={"100%"}
                         xAxisKey="x"
                         yAxisKey="y"
                         seriesName="Number of Trades"
@@ -326,13 +360,35 @@ const Charts: React.FC = () => {
                         chartType="pie"
                         data={aggregateData}
                         title="Trading Metrics Distribution"
-                        height={"100%"}
                         xAxisKey="x"
                         yAxisKey="y"
                         seriesName="Metrics"
                     />
                 </div>
-            </ReactGridLayout>
+
+                {/* Trade Heatmap */}
+                {/* <div key="heatmap-chart" className="cursor-move">
+                    <ChartComponent
+                        chartType="heatmap"
+                        data={heatmapData || []}
+                        title="Trade Frequency Heatmap"
+                        seriesName="Trades"
+                    />
+                </div> */}
+
+
+                {/* Emotional Treemap */}
+                {/* make it minimum height - 250px even on resize */}
+                <div key="treemap-chart" className="cursor-move">
+
+                    <ChartComponent
+                        chartType="treemap"
+                        data={treemapData || []}
+                        title="Emotional State by Outcome"
+                        seriesName="Emotions"
+                    />
+                </div>
+            </ResponsiveGridLayout>
         </div>
     );
 };

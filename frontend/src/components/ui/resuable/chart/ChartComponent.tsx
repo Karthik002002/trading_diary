@@ -3,7 +3,7 @@ import type { EChartsOption } from "echarts";
 import { Card, Spin, Typography } from "antd";
 
 export interface ChartComponentProps {
-    chartType: "line" | "bar" | "area" | "pie" | "scatter";
+    chartType: "line" | "bar" | "area" | "pie" | "scatter" | "heatmap" | "treemap";
     data: any[];
     title?: string;
     height?: number | string;
@@ -256,6 +256,104 @@ const ChartComponent: React.FC<ChartComponentProps> = ({
                             },
                         },
                     ],
+                };
+
+            case "heatmap":
+                return {
+                    ...baseOptions,
+                    tooltip: {
+                        position: "top",
+                        formatter: function (p: any) {
+                            const format = p.data[0];
+                            return format + ": " + p.data[1];
+                        },
+                        backgroundColor: "rgba(30, 41, 59, 0.95)",
+                        borderColor: "#475569",
+                        textStyle: { color: "#e2e8f0" },
+                    },
+                    visualMap: {
+                        min: 0,
+                        max: 10, // Adjust based on expected max trades
+                        calculable: true,
+                        orient: "horizontal",
+                        left: "center",
+                        top: "top",
+                        inRange: {
+                            color: ["#1e293b", "#0f766e", "#2dd4bf"], // Dark to Teal
+                        },
+                        textStyle: { color: "#e2e8f0" },
+                    },
+                    calendar: {
+                        top: 80,
+                        left: 30,
+                        right: 30,
+                        cellSize: ["auto", 20],
+                        range: new Date().getFullYear(), // Default to current year
+                        itemStyle: {
+                            borderWidth: 0.5,
+                        },
+                        yearLabel: { show: false },
+                        dayLabel: { color: "#e2e8f0", nameMap: "en" },
+                        monthLabel: { color: "#e2e8f0", nameMap: "en" },
+                        splitLine: { show: false },
+                    },
+                    series: [
+                        {
+                            type: "heatmap",
+                            coordinateSystem: "calendar",
+                            data: data.map((item) => [item.date, item.count]),
+                        },
+                    ],
+                };
+
+            case "treemap":
+                return {
+                    ...baseOptions,
+                    tooltip: {
+                        formatter: "{b}: {c}",
+                        backgroundColor: "rgba(30, 41, 59, 0.95)",
+                        borderColor: "#475569",
+                        textStyle: { color: "#e2e8f0" },
+                    },
+                    series: [
+                        {
+                            type: "treemap",
+                            data: data,
+                            label: {
+                                show: true,
+                                formatter: "{b}",
+                                color: "#fff"
+                            },
+                            upperLabel: {
+                                show: true,
+                                height: 30,
+                                color: "#e2e8f0",
+                                backgroundColor: "#334155" // Header background
+                            },
+                            itemStyle: {
+                                borderColor: "#1e293b",
+                                borderWidth: 2,
+                                gapWidth: 2
+                            },
+                            levels: [
+                                {
+                                    itemStyle: {
+                                        borderColor: "#0f172a",
+                                        borderWidth: 4,
+                                        gapWidth: 4
+                                    }
+                                },
+                                {
+                                    colorSaturation: [0.35, 0.5],
+                                    itemStyle: {
+                                        borderColor: "#1e293b", // Dark border for outcome groups
+                                        borderWidth: 2,
+                                        gapWidth: 2
+                                    }
+                                }
+                            ]
+                        }
+                    ]
                 };
 
             default:
