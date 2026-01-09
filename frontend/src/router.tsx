@@ -7,6 +7,7 @@ import {
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
+import Charts from "./pages/Charts";
 
 const rootRoute = createRootRoute({
 	component: Layout,
@@ -54,7 +55,13 @@ const settingsRoute = createRoute({
 
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, settingsRoute]);
+const chartsRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/charts",
+	component: Charts,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, settingsRoute, chartsRoute]);
 
 export const router = createRouter({ routeTree });
 

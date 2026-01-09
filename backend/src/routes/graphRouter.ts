@@ -5,7 +5,7 @@ const graphRouter = express.Router();
 
 
 const buildFilterQuery = (filters: any) => {
-    const { strategy_id, outcome, search, symbol, portfolio_id, status, tags } =
+    const { strategy_id, outcome, search, symbol, portfolio_id, status, tags, from, to } =
         filters;
 
     const mongoQuery: any = {};
@@ -40,6 +40,16 @@ const buildFilterQuery = (filters: any) => {
             { exit_reason: searchRegex },
             { notes: searchRegex },
         ];
+    }
+    // Add date range filtering
+    if (from || to) {
+        mongoQuery.trade_date = {};
+        if (from) {
+            mongoQuery.trade_date.$gte = new Date(from);
+        }
+        if (to) {
+            mongoQuery.trade_date.$lte = new Date(to);
+        }
     }
     return mongoQuery;
 }

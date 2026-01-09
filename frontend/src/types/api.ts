@@ -99,4 +99,19 @@ export type TFilters = {
 	portfolio_id?: string;
 	status?: string;
 	tags?: string[];
+	from?: string;
+	to?: string;
 };
+
+export interface TimeseriesDataPoint {
+	_id: string; // trade_date
+	pl: number;
+	returns: number;
+	actual_rr: number;
+	confidence_level: number;
+	total_trades: number;
+}
+
+export interface TimeseriesResponse {
+	timeseries: TimeseriesDataPoint[];
+}

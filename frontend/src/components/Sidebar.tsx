@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import classNames from "classnames";
 import { Icon } from "./ui/Icon";
+import { BarChart3 } from "lucide-react";
 
 interface SidebarProps {
 	isCollapsed: boolean;
@@ -49,6 +50,22 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 							className={`font-medium ${activeLocation.pathname === "/" ? "text-violet-800" : "text-white"}`}
 						>
 							Dashboard
+						</span>
+					)}
+				</Link>
+				<Link
+					to="/charts"
+					className="flex items-center space-x-3 py-3 px-2  rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary  group border border-transparent [&.active]:border-primary/20"
+					title={isCollapsed ? "Charts" : ""}
+				>
+					<div className={classNames("min-w-[20px] flex justify-center")}>
+						<Icon name={activeLocation.pathname === "/charts" ? "chart-active" : "chart"} size={{ height: 20, width: 20 }} />
+					</div>
+					{!isCollapsed && (
+						<span
+							className={`font-medium ${activeLocation.pathname === "/charts" ? "text-violet-800" : "text-white"}`}
+						>
+							Charts
 						</span>
 					)}
 				</Link>

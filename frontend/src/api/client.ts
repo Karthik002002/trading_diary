@@ -5,6 +5,7 @@ import type {
 	Strategy,
 	Symbol,
 	TFilters,
+	TimeseriesResponse,
 	TradeResponse,
 } from "../types/api";
 import { message } from "antd";
@@ -174,4 +175,18 @@ export const fetchPerformanceMetric = async (
 	);
 	if (!response.ok) throw new Error("Failed to fetch performance metric data");
 	return response.json();
+};
+
+export const fetchTimeseries = async (
+	filters?: TFilters,
+): Promise<TimeseriesResponse> => {
+	const response = await fetch(`${BASE_URL}/graph/timeseries`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ filters }),
+	});
+	if (!response.ok) throw new Error("Failed to fetch timeseries data");
+	const data = await response.json();
+	// The backend returns an array with a facet, extract the timeseries
+	return { timeseries: data[0]?.timeseries || [] };
 };
