@@ -18,14 +18,14 @@ import {
 import type {
 	PnlCalendarDay,
 	Strategy,
-	Symbol,
+	TSymbol,
 	TFilters,
 	Trade,
 	TradeResponse,
 } from "../types/api";
 
 // Re-export types for convenience
-export type { Trade, TradeResponse, Strategy, Symbol };
+export type { Trade, TradeResponse, Strategy, TSymbol as Symbol };
 
 export const useTrades = (page: number, limit: number, filters?: TFilters) => {
 	return useQuery<TradeResponse>({
@@ -93,7 +93,7 @@ export const useStrategies = () => {
 };
 
 export const useSymbols = () => {
-	return useQuery<Symbol[]>({
+	return useQuery<TSymbol[]>({
 		queryKey: ["symbols"],
 		queryFn: fetchSymbols,
 	});

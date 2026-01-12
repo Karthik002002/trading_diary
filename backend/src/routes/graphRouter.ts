@@ -163,5 +163,83 @@ graphRouter.post("/treemap", async (req, res) => {
     }
 });
 
+graphRouter.post("/winlosspiechart", async (req, res) => {
+    try {
+        const { filters } = req.body ?? {};
+        const query = filters ? buildFilterQuery(filters) : {};
+
+        // count not coming on response
+        const winLossData = await Trade.aggregate([
+            { $match: query },
+            {
+                $group: {
+                    _id: "$outcome",
+                    count: { $sum: 1 },
+                    name: { $first: "$_id" },
+                    value: { $first: "count" },
+                },
+            },
+            {
+                $project: {
+                    name: "$_id",
+                    value: 1,
+                    _id: 0,
+                },
+            },
+        ]);
+
+        res.status(200).json(winLossData);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: "Internal Server Error", error });
+    }
+});
+
+graphRouter.post("/outcome-tag-combination", async (req, res) => {
+    try {
+        const { filters } = req.body ?? {};
+        const query = filters ? buildFilterQuery(filters) : {};
+
+        const outcomeTagCombination = await Trade.aggregate([
+            { $match: query },
+            {
+                $project: {
+                    outcome: 1,
+                    tags: {
+                        $sortArray: {
+                            input: "$tags",
+                            sortBy: 1
+                        }
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        outcome: "$outcome",
+                        tags: "$tags"
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    outcome: "$_id.outcome",
+                    tags: "$_id.tags",
+                    count: 1
+                }
+            },
+            { $sort: { count: -1 } }
+        ])
+
+
+        res.status(200).json(outcomeTagCombination);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: "Internal Server Error", error });
+    }
+})
+
 
 export default graphRouter;

@@ -1,7 +1,8 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import classNames from "classnames";
 import { Icon } from "./ui/Icon";
-import { BarChart3 } from "lucide-react";
+import { queryClient } from "../api/client";
+import type { TDhanStatus } from "../types/api";
 
 interface SidebarProps {
 	isCollapsed: boolean;
@@ -10,6 +11,10 @@ interface SidebarProps {
 
 const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 	const activeLocation = useLocation();
+	const getIsDhanEnabled = queryClient.getQueryData([
+		"integrationStatus",
+	]) as TDhanStatus;
+
 	return (
 		<div
 			className={`fixed top-0 left-0 h-full bg-surface/95 backdrop-blur-sm border-r border-border border-gray-700 text-white flex flex-col transition-all duration-300 z-50 shadow-xl ${isCollapsed ? "w-16" : "w-50"}`}
@@ -59,7 +64,12 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 					title={isCollapsed ? "Charts" : ""}
 				>
 					<div className={classNames("min-w-[20px] flex justify-center")}>
-						<Icon name={activeLocation.pathname === "/charts" ? "chart-active" : "chart"} size={{ height: 20, width: 20 }} />
+						<Icon
+							name={
+								activeLocation.pathname === "/charts" ? "chart-active" : "chart"
+							}
+							size={{ height: 20, width: 20 }}
+						/>
 					</div>
 					{!isCollapsed && (
 						<span
@@ -92,6 +102,54 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 						</span>
 					)}
 				</Link>
+				<Link
+					to="/integrations"
+					className={`flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20`}
+					title={isCollapsed ? "Integrations" : ""}
+				>
+					<div className="min-w-[20px] flex justify-center">
+						<Icon
+							name={
+								activeLocation.pathname === "/integrations"
+									? "integration-active"
+									: "integration"
+							}
+							size={{ height: 20, width: 20 }}
+						/>
+					</div>
+					{!isCollapsed && (
+						<span
+							className={`font-medium ${activeLocation.pathname === "/integrations" ? "text-violet-800" : "text-white"}`}
+						>
+							Integrations
+						</span>
+					)}
+				</Link>
+				{getIsDhanEnabled?.enable && (
+					<Link
+						to="/dhan"
+						className={`flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20`}
+						title={isCollapsed ? "Integrations" : ""}
+					>
+						<div className="min-w-[20px] flex justify-center">
+							<Icon
+								name={
+									activeLocation.pathname === "/dhan"
+										? "dhan"
+										: "dhan"
+								}
+								size={{ height: 20, width: 20 }}
+							/>
+						</div>
+						{!isCollapsed && (
+							<span
+								className={`font-medium ${activeLocation.pathname === "/dhan" ? "text-violet-800" : "text-white"}`}
+							>
+								Dhan
+							</span>
+						)}
+					</Link>
+				)}
 			</nav>
 			<div className="p-4 border-t border-border border-gray-700 text-xs text-secondary text-center truncate font-mono">
 				{!isCollapsed ? "v1.0.0" : "v1"}

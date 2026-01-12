@@ -45,7 +45,7 @@ export interface Strategy {
 	updatedAt?: string;
 }
 
-export interface Symbol {
+export interface TSymbol {
 	_id: string;
 	id: number;
 	symbol: string;
@@ -115,3 +115,10 @@ export interface TimeseriesDataPoint {
 export interface TimeseriesResponse {
 	timeseries: TimeseriesDataPoint[];
 }
+
+export type TDhanStatus = {
+	status: string;
+	enable: boolean;
+	message?: string;
+	clientId?: string;
+};

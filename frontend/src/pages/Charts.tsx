@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Spin, Typography, Empty, Select, DatePicker, Button } from "antd";
 import { useTimeseries } from "../hooks/useTimeseries";
-import { useEmotionalTreemap, useTradeHeatmap } from "../hooks/useChartsData";
+import { useEmotionalTreemap, useTradeHeatmap, useWinLossPieChart } from "../hooks/useChartsData";
 import { useFilterStore } from "../store/useFilterStore";
 import ChartComponent from "../components/ui/resuable/chart/ChartComponent";
 import type { TimeseriesDataPoint } from "../types/api";
@@ -10,6 +10,7 @@ import { usePortfolios } from "../hooks/useResources";
 import dayjs, { Dayjs } from "dayjs";
 import { Responsive as ResponsiveGridLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 // import "react-grid-layout/css/resizable.css";
 
 // Custom hook to ensure robust width measurement
@@ -48,6 +49,8 @@ const { RangePicker } = DatePicker;
 const Charts: React.FC = () => {
     const { width, containerRef } = useResponsiveWidth();
     const filters = useFilterStore((state) => state);
+    const search = useSearch({ from: "/charts" });
+    const navigate = useNavigate();
     const setFilters = useFilterStore((state) => state.setFilters);
     const resetFilters = useFilterStore((state) => state.resetFilters);
 
@@ -58,6 +61,7 @@ const Charts: React.FC = () => {
         { i: "trades-chart", x: 0, y: 2, w: 6, h: 2 },
         { i: "metrics-chart", x: 6, y: 2, w: 6, h: 2 },
         { i: "treemap-chart", x: 0, y: 6, w: 12, h: 3, minH: 3 },
+        { i: "winloss-ratio", x: 0, y: 9, w: 6, h: 2 },
     ];
 
     // Load layout from localStorage or use default
@@ -91,20 +95,62 @@ const Charts: React.FC = () => {
     const { data: symbols, isLoading: symbolsLoading } = useSymbols();
     const { data: portfolios, isLoading: portfoliosLoading } = usePortfolios();
     const { data: heatmapData, isLoading: heatmapLoading } = useTradeHeatmap(filters);
+    const { data: winlossRatio, isLoading: isWinlossRatioLoading } = useWinLossPieChart(filters);
     const { data: treemapData, isLoading: treemapLoading } = useEmotionalTreemap(filters);
 
+    // Derived filters from URL search params
+    const urlFilters = {
+        strategy_id: search.strategy_id ? String(search.strategy_id) : undefined,
+        outcome: search.outcome,
+        symbol: search.symbol ? String(search.symbol) : undefined,
+        search: search.search,
+        portfolio_id: search.portfolio_id ? String(search.portfolio_id) : undefined,
+        status: search.status,
+        tags: search.tags,
+        from: search.from,
+        to: search.to,
+    };
+
+    useEffect(() => {
+        setFilters(urlFilters);
+    }, [
+        search.strategy_id,
+        search.outcome,
+        search.symbol,
+        search.portfolio_id,
+        search.status,
+        search.tags,
+        search.from,
+        search.to,
+        setFilters,
+    ]);
     const handleFilterChange = (key: string, value: any) => {
-        setFilters({ [key]: value });
+        // setFilters({ [key]: value });
+        navigate({
+            search: {
+                ...search,
+                [key]: value,
+            } as any,
+        });
     };
 
     const handleDateRangeChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
         if (dates) {
-            setFilters({
-                from: dates[0] ? dates[0].format("YYYY-MM-DD") : undefined,
-                to: dates[1] ? dates[1].format("YYYY-MM-DD") : undefined,
+            navigate({
+                search: {
+                    ...search,
+                    from: dates[0] ? dates[0].format("YYYY-MM-DD") : undefined,
+                    to: dates[1] ? dates[1].format("YYYY-MM-DD") : undefined,
+                } as any,
             });
         } else {
-            setFilters({ from: undefined, to: undefined });
+            navigate({
+                search: {
+                    ...search,
+                    from: undefined,
+                    to: undefined,
+                } as any,
+            });
         }
     };
 
@@ -363,6 +409,17 @@ const Charts: React.FC = () => {
                         xAxisKey="x"
                         yAxisKey="y"
                         seriesName="Metrics"
+                    />
+                </div>
+
+                <div key={"winloss-ratio"} className="cursor-move">
+                    <ChartComponent
+                        chartType="pie"
+                        data={winlossRatio ?? []}
+                        title="Win/Loss Ratio"
+                        xAxisKey="x"
+                        yAxisKey="y"
+                        seriesName="Win/Loss"
                     />
                 </div>
 

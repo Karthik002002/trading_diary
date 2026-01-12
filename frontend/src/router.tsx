@@ -2,19 +2,18 @@ import {
 	createRootRoute,
 	createRoute,
 	createRouter,
-	useSearch,
 } from "@tanstack/react-router";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import Charts from "./pages/Charts";
+import Integrations from "./pages/Integrations";
 
 const rootRoute = createRootRoute({
 	component: Layout,
 });
 
 import { z } from "zod";
-import { preferenceStore, usePreferenceStore } from "./store/preferenceStore";
 
 const dashboardSearchSchema = z.object({
 	page: z.number().optional().default(1),
@@ -24,6 +23,10 @@ const dashboardSearchSchema = z.object({
 	search: z.string().optional(),
 	from: z.string().optional(),
 	to: z.string().optional(),
+	portfolio_id: z.number().optional(),
+	symbol: z.number().optional(),
+	status: z.string().optional(),
+	tags: z.array(z.string()).optional(),
 });
 
 const indexRoute = createRoute({
@@ -59,9 +62,16 @@ const chartsRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/charts",
 	component: Charts,
+	validateSearch: dashboardSearchSchema,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, settingsRoute, chartsRoute]);
+const integrationsRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/integrations",
+	component: Integrations,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, settingsRoute, chartsRoute, integrationsRoute]);
 
 export const router = createRouter({ routeTree });
 

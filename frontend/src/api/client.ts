@@ -3,7 +3,8 @@ import type {
 	PerformanceMetric,
 	PnlCalendarDay,
 	Strategy,
-	Symbol,
+	TSymbol,
+	TDhanStatus,
 	TFilters,
 	TimeseriesResponse,
 	TradeResponse,
@@ -19,12 +20,9 @@ export const queryClient = new QueryClient({
 	},
 	queryCache: new QueryCache({
 		onError: (error) => {
-
 			message.error(error.message ?? JSON.stringify(error));
-
 		},
 	}),
-
 });
 
 const BASE_URL = "http://localhost:5000/api";
@@ -134,7 +132,7 @@ export const fetchTags = async (
 	return response.json();
 };
 
-export const fetchSymbols = async (): Promise<Symbol[]> => {
+export const fetchSymbols = async (): Promise<TSymbol[]> => {
 	const response = await fetch(`${BASE_URL}/symbols`);
 	if (!response.ok) throw new Error("Failed to fetch symbols");
 	return response.json();
@@ -201,12 +199,50 @@ export const fetchTradeHeatmap = async (filters?: TFilters): Promise<any[]> => {
 	return response.json();
 };
 
-export const fetchEmotionalTreemap = async (filters?: TFilters): Promise<any[]> => {
+export const fetchEmotionalTreemap = async (
+	filters?: TFilters,
+): Promise<any[]> => {
 	const response = await fetch(`${BASE_URL}/graph/treemap`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ filters }),
 	});
 	if (!response.ok) throw new Error("Failed to fetch treemap data");
+	return response.json();
+};
+
+export const fetchWinLossPieChart = async (
+	filters?: TFilters,
+): Promise<any[]> => {
+	const response = await fetch(`${BASE_URL}/graph/winlosspiechart`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ filters }),
+	});
+	if (!response.ok) throw new Error("Failed to fetch win loss pie chart data");
+	return response.json();
+};
+
+export const connectDhan = async (
+	clientId: string,
+	accessToken: string,
+): Promise<{ message: string; status: string }> => {
+	const response = await fetch(`${BASE_URL}/integrations/dhan/connect`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ clientId, accessToken }),
+	});
+	if (!response.ok) {
+		const errorData = await response.json();
+		throw new Error(errorData.message || "Failed to connect to Dhan");
+	}
+	return response.json();
+};
+
+export const getIntegrationStatus = async (): Promise<TDhanStatus> => {
+	const response = await fetch(`${BASE_URL}/integrations/dhan/status`);
+	if (!response.ok) {
+		throw new Error("Failed to fetch integration status");
+	}
 	return response.json();
 };
