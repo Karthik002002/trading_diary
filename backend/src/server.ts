@@ -10,6 +10,9 @@ import tradeRoutes from "./routes/tradeRoutes";
 import graphRouter from "./routes/graphRouter";
 import integrationRoutes from "./routes/integrationRoutes";
 import os from "node:os";
+import customScript from "./customScripts";
+import clipboardRoutes from "./routes/clipboardRoutes";
+import { startClipboardMonitor } from "./clipboardStore";
 
 dotenv.config();
 
@@ -54,6 +57,7 @@ app.use("/api/symbols", symbolRoutes);
 app.use("/api/tags", tagRoutes);
 app.use("/api/graph", graphRouter);
 app.use("/api/integrations", integrationRoutes);
+app.use("/api/clipboard", clipboardRoutes);
 
 app.use("/uploads", express.static("uploads"));
 
@@ -70,3 +74,6 @@ mongoose
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);
 });
+
+customScript();
+// startClipboardMonitor();

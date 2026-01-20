@@ -1,8 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import classNames from "classnames";
 import { Icon } from "./ui/Icon";
-import { queryClient } from "../api/client";
+import { getIntegrationStatus, queryClient } from "../api/client";
 import type { TDhanStatus } from "../types/api";
+import { useQuery } from "@tanstack/react-query";
 
 interface SidebarProps {
 	isCollapsed: boolean;
@@ -11,9 +12,11 @@ interface SidebarProps {
 
 const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 	const activeLocation = useLocation();
-	const getIsDhanEnabled = queryClient.getQueryData([
-		"integrationStatus",
-	]) as TDhanStatus;
+	const { data: statusData } = useQuery({
+		queryKey: ["integrationStatus"],
+		queryFn: getIntegrationStatus,
+	});
+	const getIsDhanEnabled = statusData
 
 	return (
 		<div
@@ -133,11 +136,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 					>
 						<div className="min-w-[20px] flex justify-center">
 							<Icon
-								name={
-									activeLocation.pathname === "/dhan"
-										? "dhan"
-										: "dhan"
-								}
+								name={activeLocation.pathname === "/dhan" ? "dhan" : "dhan"}
 								size={{ height: 20, width: 20 }}
 							/>
 						</div>

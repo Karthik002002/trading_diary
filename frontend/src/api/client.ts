@@ -246,3 +246,17 @@ export const getIntegrationStatus = async (): Promise<TDhanStatus> => {
 	}
 	return response.json();
 };
+
+export type ClipboardData = {
+	stoploss: string | null;
+	target: string | null;
+	entry: string | null;
+	images: { image: string; type: string }[];
+};
+
+export const fetchClipboardData = async (): Promise<ClipboardData> => {
+	const response = await fetch(`${BASE_URL}/clipboard/latest`);
+	if (!response.ok) throw new Error("Failed to fetch clipboard data");
+	const data = await response.json();
+	return data.data;
+};

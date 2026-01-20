@@ -26,7 +26,7 @@ import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { FaPaste } from "react-icons/fa";
-import { queryClient } from "../../api/client";
+import { fetchClipboardData, queryClient } from "../../api/client";
 import {
 	usePortfolios,
 	useStrategies,
@@ -41,6 +41,7 @@ import {
 import { usePreferenceStore } from "../../store/preferenceStore";
 import { CreateSymbolModal } from "../settings/CreateSymbolModal";
 import { type TradeFormValues, tradeSchema } from "./schema";
+import { useHotkeys } from "react-hotkeys-hook";
 
 interface Props {
 	isOpen: boolean;
@@ -72,6 +73,7 @@ const CreateTradeModal: React.FC<Props> = ({
 		control,
 		handleSubmit,
 		reset,
+		setValue,
 		formState: { isDirty },
 		getValues,
 	} = useForm({
@@ -167,9 +169,9 @@ const CreateTradeModal: React.FC<Props> = ({
 				timeframe_photos:
 					tradeToEdit.timeframe_photos?.length > 0
 						? tradeToEdit.timeframe_photos.map((tp) => ({
-								type: tp.type,
-								photo: tp.photo,
-							}))
+							type: tp.type,
+							photo: tp.photo,
+						}))
 						: [{ type: "4h", photo: null }],
 				status: (tradeToEdit as any).status ?? "NIN",
 			});
@@ -295,7 +297,7 @@ const CreateTradeModal: React.FC<Props> = ({
 				: typeof option.label === "number"
 					? option.label.toString()
 					: // ReactNode case (e.g. <span>...</span>)
-						((option.label as any)?.props?.children?.toString?.() ?? "");
+					((option.label as any)?.props?.children?.toString?.() ?? "");
 
 		const valueText = option.value?.toString?.() ?? "";
 
@@ -305,6 +307,58 @@ const CreateTradeModal: React.FC<Props> = ({
 		);
 	};
 
+	const handlePasteData = async () => {
+		try {
+			const res = await fetchClipboardData();
+
+			// Ensure we have at least the 3 data points
+			if (!res.stoploss || !res.target || !res.entry) {
+				message.error(
+					"Clipboard history needs 3 data points (SL, TP, Entry).",
+				);
+				return;
+			}
+
+			// Parse as numbers
+			const slNum = Number(res.stoploss);
+			const tpNum = Number(res.target);
+			const entryNum = Number(res.entry);
+
+			if (Number.isNaN(slNum) || Number.isNaN(tpNum) || Number.isNaN(entryNum)) {
+				message.error("Clipboard data contains invalid numbers");
+				return;
+			}
+
+			setValue("stop_loss", slNum);
+			setValue("take_profit", tpNum);
+			setValue("entry_price", entryNum);
+			setValue("exit_price", slNum);
+
+			// Populate timeframe photos if present
+			if (res.images && res.images.length > 0) {
+				const photos = res.images.map((img) => ({
+					type: img.type,
+					photo: img.image, // URL string
+				}));
+				setValue("timeframe_photos", photos);
+			}
+
+			message.success(
+				res.images.length > 0
+					? `Pasted Data & ${res.images.length} Image(s)`
+					: "Pasted Trade Data (SL, TP, Entry)",
+			);
+		} catch (error) {
+			console.error("Failed to fetch clipboard data:", error);
+			message.error("Failed to fetch clipboard data from backend.");
+		}
+	};
+
+	useHotkeys("alt+v", async (e) => {
+		e.preventDefault()
+		e.stopPropagation()
+		await handlePasteData()
+	})
 	return (
 		<Modal
 			open={isOpen}
@@ -334,6 +388,8 @@ const CreateTradeModal: React.FC<Props> = ({
 					},
 				)}
 			>
+
+
 				<Collapse
 					defaultActiveKey={["trade", "psychological", "photos"]}
 					ghost

@@ -14,6 +14,11 @@ const rootRoute = createRootRoute({
 });
 
 import { z } from "zod";
+import { DhanIntegrationPage } from "./pages/Dhan";
+import { DhanPortfolio } from "./pages/dhan/Portfolio";
+import { DhanTrades } from "./pages/dhan/Trades";
+import { DhanPositions } from "./pages/dhan/Positions";
+import { Navigate } from "@tanstack/react-router";
 
 const dashboardSearchSchema = z.object({
 	page: z.number().optional().default(1),
@@ -42,7 +47,6 @@ const indexRoute = createRoute({
 	// 		search.strategy_id = Number(dataPreference.strategy_id);
 	// 	}
 
-
 	// 	if (!search.port) {
 	// 		search.strategy_id = Number(search.strategy_id);
 	// 	}
@@ -55,7 +59,6 @@ const settingsRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/settings",
 	component: Settings,
-
 });
 
 const chartsRoute = createRoute({
@@ -70,8 +73,50 @@ const integrationsRoute = createRoute({
 	path: "/integrations",
 	component: Integrations,
 });
+const dhanRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/dhan",
+	component: DhanIntegrationPage,
+});
 
-const routeTree = rootRoute.addChildren([indexRoute, settingsRoute, chartsRoute, integrationsRoute]);
+const dhanPortfolioRoute = createRoute({
+	getParentRoute: () => dhanRoute,
+	path: "portfolio",
+	component: DhanPortfolio,
+});
+
+const dhanTradesRoute = createRoute({
+	getParentRoute: () => dhanRoute,
+	path: "trades",
+	component: DhanTrades,
+});
+
+const dhanPositionsRoute = createRoute({
+	getParentRoute: () => dhanRoute,
+	path: "positions",
+	component: DhanPositions,
+});
+
+const dhanIndexRoute = createRoute({
+	getParentRoute: () => dhanRoute,
+	path: "/",
+	component: () => <Navigate to="/dhan/portfolio" />,
+});
+
+const dhanRouteWithChildren = dhanRoute.addChildren([
+	dhanIndexRoute,
+	dhanPortfolioRoute,
+	dhanTradesRoute,
+	dhanPositionsRoute,
+]);
+
+const routeTree = rootRoute.addChildren([
+	indexRoute,
+	settingsRoute,
+	chartsRoute,
+	integrationsRoute,
+	dhanRouteWithChildren,
+]);
 
 export const router = createRouter({ routeTree });
 

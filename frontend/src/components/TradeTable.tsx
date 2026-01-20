@@ -17,6 +17,7 @@ import CreateTradeModal from "./dashboard/CreateTradeModal";
 import ImageViewerModal from "./ImageViewerModal";
 import { Icon } from "./ui/Icon";
 import { VirtualTable } from "./VirtualTable";
+import dayjs from "dayjs";
 
 const columnHelper = createColumnHelper<Trade>();
 
@@ -122,7 +123,7 @@ const TradeTable: React.FC = () => {
 		() => [
 			// ... existing columns ...
 			columnHelper.accessor(
-				(row) => new Date(row.trade_date).toLocaleDateString(),
+				(row) => dayjs(row.trade_date).format("DD/MM/YYYY"),
 				{
 					id: "date",
 					header: "Date",
