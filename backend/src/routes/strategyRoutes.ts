@@ -1,12 +1,64 @@
 import express, { type Request, type Response } from "express";
+import dayjs from "dayjs";
 import { validateRequest } from "../middleware/validateRequest";
 import Strategy from "../models/strategy";
+import Trade from "../models/trade";
 import {
 	createStrategyValidator,
 	updateStrategyValidator,
 } from "../validators/strategyValidators";
 
 const router = express.Router();
+
+// Get strategy limits and current losses
+router.get("/status/limits", async (req: Request, res: Response) => {
+	try {
+		const strategies = await Strategy.find();
+		const now = dayjs();
+		const startOfWeek = now.startOf("week").toDate();
+		const startOfMonth = now.startOf("month").toDate();
+
+		const status = await Promise.all(
+			strategies.map(async (strategy) => {
+				const weeklyTrades = await Trade.find({
+					strategy_id: strategy.id,
+					trade_date: { $gte: startOfWeek },
+				});
+				const monthlyTrades = await Trade.find({
+					strategy_id: strategy.id,
+					trade_date: { $gte: startOfMonth },
+				});
+
+				const weeklyPL = weeklyTrades.reduce(
+					(sum, t) => sum + (t.pl || 0),
+					0,
+				);
+				const monthlyPL = monthlyTrades.reduce(
+					(sum, t) => sum + (t.pl || 0),
+					0,
+				);
+
+				const currentWeeklyLoss =
+					weeklyPL < 0 ? Number(Math.abs(weeklyPL).toFixed(2)) : 0;
+				const currentMonthlyLoss =
+					monthlyPL < 0 ? Number(Math.abs(monthlyPL).toFixed(2)) : 0;
+
+				return {
+					strategyId: strategy.id,
+					strategyName: strategy.name,
+					weeklyLossLimit: strategy.weeklyLossLimit,
+					monthlyLossLimit: strategy.monthlyLossLimit,
+					currentWeeklyLoss,
+					currentMonthlyLoss,
+				};
+			}),
+		);
+
+		res.json(status);
+	} catch (error: any) {
+		res.status(500).json({ message: error.message });
+	}
+});
 
 // Create new strategy
 router.post(

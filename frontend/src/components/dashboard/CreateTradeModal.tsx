@@ -257,12 +257,13 @@ const CreateTradeModal: React.FC<Props> = ({
 				{
 					onSuccess: () => {
 						queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
+						queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
 						onClose();
 					},
 				},
 			);
 		} else {
-			createMutation.mutate(data, { onSuccess: onClose });
+			createMutation.mutate(data, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] }); queryClient.invalidateQueries({ queryKey: ["strategy-limits"] }); onClose() } });
 		}
 	};
 

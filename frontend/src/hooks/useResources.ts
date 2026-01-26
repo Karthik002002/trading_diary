@@ -83,6 +83,13 @@ export const useDeleteStrategy = () => {
 	});
 };
 
+export const useStrategyLimits = () =>
+	useQuery({
+		queryKey: ["strategy-limits"],
+		queryFn: () => fetchData("strategies/status/limits"),
+		refetchInterval: 10000, // Refetch every 10 seconds
+	});
+
 // --- Symbols ---
 export const useSymbols = () =>
 	useQuery({ queryKey: ["symbols"], queryFn: fetchSymbols });

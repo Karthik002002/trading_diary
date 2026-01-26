@@ -4,6 +4,8 @@ export interface IStrategy extends Document {
 	id: number;
 	name: string;
 	description: string | null;
+	monthlyLossLimit: number | null;
+	weeklyLossLimit: number | null;
 }
 
 const StrategySchema: Schema = new Schema(
@@ -11,6 +13,8 @@ const StrategySchema: Schema = new Schema(
 		id: { type: Number, unique: true },
 		name: { type: String, required: true },
 		description: { type: String, required: false, default: null },
+		monthlyLossLimit: { type: Number, required: false, default: null },
+		weeklyLossLimit: { type: Number, required: false, default: null },
 	},
 	{
 		timestamps: true,

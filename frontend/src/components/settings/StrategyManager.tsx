@@ -1,5 +1,5 @@
 import { createColumnHelper } from "@tanstack/react-table";
-import { Button, Input, Modal } from "antd";
+import { Button, Input, InputNumber, Modal } from "antd";
 import { useMemo, useState } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import {
@@ -19,7 +19,12 @@ const StrategyManager = () => {
 
 	const [isOpen, setIsOpen] = useState(false);
 	const [editingId, setEditingId] = useState<number | null>(null);
-	const [formData, setFormData] = useState({ name: "", description: "" });
+	const [formData, setFormData] = useState({
+		name: "",
+		description: "",
+		monthlyLossLimit: null as number | null,
+		weeklyLossLimit: null as number | null,
+	});
 
 	const handleOpen = (strategy?: any) => {
 		if (strategy) {
@@ -27,10 +32,17 @@ const StrategyManager = () => {
 			setFormData({
 				name: strategy.name,
 				description: strategy.description || "",
+				monthlyLossLimit: strategy.monthlyLossLimit || null,
+				weeklyLossLimit: strategy.weeklyLossLimit || null,
 			});
 		} else {
 			setEditingId(null);
-			setFormData({ name: "", description: "" });
+			setFormData({
+				name: "",
+				description: "",
+				monthlyLossLimit: null,
+				weeklyLossLimit: null,
+			});
 		}
 		setIsOpen(true);
 	};
@@ -59,6 +71,26 @@ const StrategyManager = () => {
 		return [
 			columnHelper.accessor("id", { header: "ID", size: 60 }),
 			columnHelper.accessor("name", { header: "Name" }),
+			columnHelper.accessor("weeklyLossLimit", {
+				header: "W. Limit",
+				cell: (info) =>
+					info.getValue() ? (
+						<span className="text-red-400">₹{info.getValue()}</span>
+					) : (
+						"-"
+					),
+				size: 100,
+			}),
+			columnHelper.accessor("monthlyLossLimit", {
+				header: "M. Limit",
+				cell: (info) =>
+					info.getValue() ? (
+						<span className="text-red-500 font-bold">₹{info.getValue()}</span>
+					) : (
+						"-"
+					),
+				size: 100,
+			}),
 			columnHelper.accessor("description", {
 				header: "Description",
 				cell: (info) => {
@@ -128,15 +160,47 @@ const StrategyManager = () => {
 					</>
 				}
 			>
-				<div className="mb-4">
-					<label className="block text-sm font-medium mb-1">Strategy Name</label>
-					<Input
-						placeholder="Enter name"
-						value={formData.name}
-						onChange={(e) =>
-							setFormData({ ...formData, name: e.currentTarget.value })
-						}
-					/>
+				<div className="grid grid-cols-2 gap-4 mb-4">
+					<div>
+						<label className="block text-sm font-medium mb-1">
+							Strategy Name
+						</label>
+						<Input
+							placeholder="Enter name"
+							value={formData.name}
+							onChange={(e) =>
+								setFormData({ ...formData, name: e.currentTarget.value })
+							}
+						/>
+					</div>
+					<div className="flex gap-4">
+						<div className="flex-1">
+							<label className="block text-sm font-medium mb-1">
+								Weekly Loss Limit
+							</label>
+							<InputNumber
+								className="w-full"
+								placeholder="Weekly Limit"
+								value={formData.weeklyLossLimit}
+								onChange={(val) =>
+									setFormData({ ...formData, weeklyLossLimit: val })
+								}
+							/>
+						</div>
+						<div className="flex-1">
+							<label className="block text-sm font-medium mb-1">
+								Monthly Loss Limit
+							</label>
+							<InputNumber
+								className="w-full"
+								placeholder="Monthly Limit"
+								value={formData.monthlyLossLimit}
+								onChange={(val) =>
+									setFormData({ ...formData, monthlyLossLimit: val })
+								}
+							/>
+						</div>
+					</div>
 				</div>
 
 				<div className="mt-4">
