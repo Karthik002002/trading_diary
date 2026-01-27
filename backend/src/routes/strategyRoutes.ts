@@ -43,13 +43,40 @@ router.get("/status/limits", async (req: Request, res: Response) => {
 				const currentMonthlyLoss =
 					monthlyPL < 0 ? Number(Math.abs(monthlyPL).toFixed(2)) : 0;
 
+				// Calculate consecutive losses
+				const recentTrades = await Trade.find({ strategy_id: strategy.id })
+					.sort({ trade_date: -1 })
+					.limit(20); // Check last 20 trades for streak
+
+				let currentConsecutiveLosses = 0;
+				for (const trade of recentTrades) {
+					if (trade.outcome === "loss") {
+						currentConsecutiveLosses++;
+					} else if (trade.outcome === "win") {
+						break; // Streak broken by a win
+					}
+					// Neutral trades might not break the streak or might? 
+					// Usually in trading, 'consecutive loss' refers to losing trades back-to-back.
+					// Let's assume neutral doesn't break it but doesn't increment it? 
+					// Actually, most systems consider any non-loss as a break or at least win as a break.
+					// Let's go with: Win breaks it. Neutral ignored.
+				}
+
+				// Optionally store it back to the strategy if it changed
+				if (strategy.currentConsecutiveLosses !== currentConsecutiveLosses) {
+					strategy.currentConsecutiveLosses = currentConsecutiveLosses;
+					await strategy.save();
+				}
+
 				return {
 					strategyId: strategy.id,
 					strategyName: strategy.name,
 					weeklyLossLimit: strategy.weeklyLossLimit,
 					monthlyLossLimit: strategy.monthlyLossLimit,
+					consecutiveLossLimit: strategy.consecutiveLossLimit,
 					currentWeeklyLoss,
 					currentMonthlyLoss,
+					currentConsecutiveLosses,
 				};
 			}),
 		);

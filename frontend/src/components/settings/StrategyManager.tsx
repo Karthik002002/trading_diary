@@ -24,6 +24,7 @@ const StrategyManager = () => {
 		description: "",
 		monthlyLossLimit: null as number | null,
 		weeklyLossLimit: null as number | null,
+		consecutiveLossLimit: null as number | null,
 	});
 
 	const handleOpen = (strategy?: any) => {
@@ -34,6 +35,7 @@ const StrategyManager = () => {
 				description: strategy.description || "",
 				monthlyLossLimit: strategy.monthlyLossLimit || null,
 				weeklyLossLimit: strategy.weeklyLossLimit || null,
+				consecutiveLossLimit: strategy.consecutiveLossLimit || null,
 			});
 		} else {
 			setEditingId(null);
@@ -42,6 +44,7 @@ const StrategyManager = () => {
 				description: "",
 				monthlyLossLimit: null,
 				weeklyLossLimit: null,
+				consecutiveLossLimit: null,
 			});
 		}
 		setIsOpen(true);
@@ -90,6 +93,16 @@ const StrategyManager = () => {
 						"-"
 					),
 				size: 100,
+			}),
+			columnHelper.accessor("consecutiveLossLimit", {
+				header: "Loss Streak Limit",
+				cell: (info) =>
+					info.getValue() ? (
+						<span className="text-orange-400 font-bold">{info.getValue()}</span>
+					) : (
+						"-"
+					),
+				size: 120,
 			}),
 			columnHelper.accessor("description", {
 				header: "Description",
@@ -173,33 +186,50 @@ const StrategyManager = () => {
 							}
 						/>
 					</div>
-					<div className="flex gap-4">
-						<div className="flex-1">
-							<label className="block text-sm font-medium mb-1">
-								Weekly Loss Limit
-							</label>
-							<InputNumber
-								className="w-full"
-								placeholder="Weekly Limit"
-								value={formData.weeklyLossLimit}
-								onChange={(val) =>
-									setFormData({ ...formData, weeklyLossLimit: val })
-								}
-							/>
-						</div>
-						<div className="flex-1">
-							<label className="block text-sm font-medium mb-1">
-								Monthly Loss Limit
-							</label>
-							<InputNumber
-								className="w-full"
-								placeholder="Monthly Limit"
-								value={formData.monthlyLossLimit}
-								onChange={(val) =>
-									setFormData({ ...formData, monthlyLossLimit: val })
-								}
-							/>
-						</div>
+
+				</div>
+				<div className="grid grid-cols-8 gap-3">
+					<div className="col-span-2">
+						<label className="block text-sm font-medium mb-1">
+							Weekly Loss Limit
+						</label>
+						<InputNumber
+							className="w-full"
+							placeholder="Weekly Limit"
+							value={formData.weeklyLossLimit}
+							onChange={(val) =>
+								setFormData({ ...formData, weeklyLossLimit: val })
+							}
+							style={{ width: "90%" }}
+						/>
+					</div>
+					<div className="col-span-2">
+						<label className="block text-sm font-medium mb-1">
+							Monthly Loss Limit
+						</label>
+						<InputNumber
+							className="w-full"
+							placeholder="Monthly Limit"
+							value={formData.monthlyLossLimit}
+							style={{ width: "90%" }}
+							onChange={(val) =>
+								setFormData({ ...formData, monthlyLossLimit: val })
+							}
+						/>
+					</div>
+					<div className="col-span-2">
+						<label className="block text-sm font-medium mb-1">
+							Loss Streak Alert
+						</label>
+						<InputNumber
+							className="w-full"
+							placeholder="Streak Limit"
+							value={formData.consecutiveLossLimit}
+							style={{ width: "90%" }}
+							onChange={(val) =>
+								setFormData({ ...formData, consecutiveLossLimit: val })
+							}
+						/>
 					</div>
 				</div>
 

@@ -20,23 +20,38 @@ const StrategyLimitMonitor = () => {
                 const ratio = s.currentWeeklyLoss / s.weeklyLossLimit;
                 const key = `${s.strategyId}-weekly`;
 
-                if (ratio >= 1 && !notifiedExceeded.has(key)) {
-                    // notification.error({
-                    //     message: "Weekly Loss Limit Exceeded",
-                    //     description: `Strategy "${s.strategyName}" has exceeded its weekly loss limit (₹${s.currentWeeklyLoss} / ₹${s.weeklyLossLimit}).`,
-                    //     duration: 0,
-                    // });
-                    setNotifiedExceeded(prev => new Set(prev).add(key));
-                } else if (ratio >= 0.9 && ratio < 1 && !notifiedWarning.has(key)) {
-                    // notification.warning({
-                    //     message: "Weekly Loss Limit Warning",
-                    //     description: `Strategy "${s.strategyName}" is close to 90% of its weekly loss limit.`,
-                    //     duration: 5,
-                    // });
-                    setNotifiedWarning(prev => new Set(prev).add(key));
+                if (ratio >= 1) {
+                    // Exceeded
+                    setNotifiedExceeded(prev => prev.has(key) ? prev : new Set(prev).add(key));
+                    setNotifiedWarning(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
+                } else if (ratio >= 0.9) {
+                    // Warning
+                    setNotifiedWarning(prev => prev.has(key) ? prev : new Set(prev).add(key));
+                    setNotifiedExceeded(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
                 } else {
-                    setNotifiedExceeded(prev => { prev.delete(key); return prev });
-                    setNotifiedWarning(prev => { prev.delete(key); return prev });
+                    // Neither
+                    setNotifiedExceeded(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
+                    setNotifiedWarning(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
                 }
             }
 
@@ -45,34 +60,67 @@ const StrategyLimitMonitor = () => {
                 const ratio = s.currentMonthlyLoss / s.monthlyLossLimit;
                 const key = `${s.strategyId}-monthly`;
 
-                if (ratio >= 1 && !notifiedExceeded.has(key)) {
-                    // notification.error({
-                    //     message: "Monthly Loss Limit Exceeded",
-                    //     description: `Strategy "${s.strategyName}" has exceeded its monthly loss limit (₹${s.currentMonthlyLoss} / ₹${s.monthlyLossLimit}).`,
-                    //     duration: 0,
-                    // });
-                    setNotifiedExceeded(prev => new Set(prev).add(key));
-                } else if (ratio >= 0.9 && ratio < 1 && !notifiedWarning.has(key)) {
-                    // notification.warning({
-                    //     message: "Monthly Loss Limit Warning",
-                    //     description: `Strategy "${s.strategyName}" is close to 90% of its monthly loss limit.`,
-                    //     duration: 5,
-                    // });
-                    setNotifiedWarning(prev => new Set(prev).add(key));
+                if (ratio >= 1) {
+                    // Exceeded
+                    setNotifiedExceeded(prev => prev.has(key) ? prev : new Set(prev).add(key));
+                    setNotifiedWarning(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
+                } else if (ratio >= 0.9) {
+                    // Warning
+                    setNotifiedWarning(prev => prev.has(key) ? prev : new Set(prev).add(key));
+                    setNotifiedExceeded(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
                 } else {
-                    setNotifiedExceeded(prev => { prev.delete(key); return prev });
-                    setNotifiedWarning(prev => { prev.delete(key); return prev });
+                    // Neither
+                    setNotifiedExceeded(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
+                    setNotifiedWarning(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
+                }
+            }
+
+            // Consecutive Loss Check
+            if (s.consecutiveLossLimit) {
+                const streak = s.currentConsecutiveLosses;
+                const key = `${s.strategyId}-consecutive`;
+
+                if (streak >= s.consecutiveLossLimit) {
+                    setNotifiedExceeded(prev => prev.has(key) ? prev : new Set(prev).add(key));
+                } else {
+                    setNotifiedExceeded(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
                 }
             }
         });
-    }, [limits, notifiedExceeded, notifiedWarning]);
+    }, [limits]);
 
     const alertsCount = useMemo(() => {
         if (!limits) return 0;
         return limits.filter((s: any) => {
             const wRatio = s.weeklyLossLimit ? s.currentWeeklyLoss / s.weeklyLossLimit : 0;
             const mRatio = s.monthlyLossLimit ? s.currentMonthlyLoss / s.monthlyLossLimit : 0;
-            return wRatio >= 0.9 || mRatio >= 0.9;
+            const cExceeded = s.consecutiveLossLimit ? s.currentConsecutiveLosses >= s.consecutiveLossLimit : false;
+            return wRatio >= 0.9 || mRatio >= 0.9 || cExceeded;
         }).length;
     }, [limits]);
 
@@ -131,7 +179,18 @@ const StrategyLimitMonitor = () => {
                                                 </div>
                                             </div>
                                         )}
-                                        {!s.weeklyLossLimit && !s.monthlyLossLimit && (
+                                        {s.consecutiveLossLimit && (
+                                            <div className="flex justify-between items-center">
+                                                <span>Loss Streak:</span>
+                                                <div>
+                                                    <Text type={s.currentConsecutiveLosses >= s.consecutiveLossLimit ? "danger" : "secondary"}>
+                                                        {s.currentConsecutiveLosses} / {s.consecutiveLossLimit}
+                                                    </Text>
+                                                    {s.currentConsecutiveLosses >= s.consecutiveLossLimit && <Tag color="error" className="ml-2">LIMIT REACHED</Tag>}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {!s.weeklyLossLimit && !s.monthlyLossLimit && !s.consecutiveLossLimit && (
                                             <Text type="secondary" italic>No limits set</Text>
                                         )}
                                     </div>

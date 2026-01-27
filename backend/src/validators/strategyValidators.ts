@@ -14,6 +14,10 @@ export const createStrategyValidator = [
 		.optional({ nullable: true })
 		.isNumeric()
 		.withMessage("Weekly loss limit must be a number"),
+	body("consecutiveLossLimit")
+		.optional({ nullable: true })
+		.isNumeric()
+		.withMessage("Consecutive loss limit must be a number"),
 ];
 
 export const updateStrategyValidator = [
@@ -30,4 +34,8 @@ export const updateStrategyValidator = [
 		.optional({ nullable: true })
 		.isNumeric()
 		.withMessage("Weekly loss limit must be a number"),
+	body("consecutiveLossLimit")
+		.optional({ nullable: true })
+		.isNumeric()
+		.withMessage("Consecutive loss limit must be a number"),
 ];

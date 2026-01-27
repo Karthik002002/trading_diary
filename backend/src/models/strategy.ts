@@ -6,6 +6,8 @@ export interface IStrategy extends Document {
 	description: string | null;
 	monthlyLossLimit: number | null;
 	weeklyLossLimit: number | null;
+	consecutiveLossLimit: number | null;
+	currentConsecutiveLosses: number;
 }
 
 const StrategySchema: Schema = new Schema(
@@ -15,6 +17,8 @@ const StrategySchema: Schema = new Schema(
 		description: { type: String, required: false, default: null },
 		monthlyLossLimit: { type: Number, required: false, default: null },
 		weeklyLossLimit: { type: Number, required: false, default: null },
+		consecutiveLossLimit: { type: Number, required: false, default: null },
+		currentConsecutiveLosses: { type: Number, required: false, default: 0 },
 	},
 	{
 		timestamps: true,

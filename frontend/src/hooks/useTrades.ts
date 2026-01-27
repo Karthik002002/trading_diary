@@ -56,6 +56,7 @@ export const useCreateTrade = () => {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["trades"] });
 			queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
+			queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
 		},
 	});
 };
@@ -69,6 +70,7 @@ export const useUpdateTrade = () => {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["trades"] });
 			queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
+			queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
 		},
 	});
 };
@@ -81,6 +83,7 @@ export const useDeleteTrade = () => {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["trades"] });
 			queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
+			queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
 		},
 	});
 };
@@ -129,6 +132,7 @@ export const useUpdateStrategy = () => {
 			updateStrategy(id, data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["strategies"] });
+			queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
 		},
 	});
 };
