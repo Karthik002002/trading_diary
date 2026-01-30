@@ -169,7 +169,7 @@ const MaxLoss = () => {
 			<InputNumber
 				value={maxLossValue}
 				onChange={(e) => {
-					if (e) {
+					if (e !== null && e !== undefined) {
 						setMaxLossValue(e);
 						handleDebounce(e);
 					}
@@ -226,7 +226,7 @@ const DataPreference = () => {
 							label: p.name,
 						}))}
 						placeholder="Select strategy"
-						value={dataPreference.strategy_id }
+						value={dataPreference.strategy_id}
 						onChange={(e) =>
 							setDataPreference("strategy_id", e)
 						}

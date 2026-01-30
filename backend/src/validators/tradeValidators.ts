@@ -19,12 +19,16 @@ export const createTradeValidator = [
 		.optional()
 		.withMessage("Take profit must be a number"),
 	body("outcome")
-		.isIn(["win", "loss", "neutral"])
-		.withMessage("Outcome must be win, loss, or neutral"),
+		.isIn(["win", "loss", "neutral", "missed"])
+		.withMessage("Outcome must be win, loss, neutral, or missed"),
 	body("confidence_level")
 		.optional({ nullable: true })
 		.isInt({ min: 1, max: 10 })
 		.withMessage("Confidence level must be between 1 and 10"),
+	body("portfolio_id")
+		.optional({ nullable: true })
+		.isNumeric()
+		.withMessage("Portfolio ID must be a number"),
 	body("market_condition")
 		.optional({ nullable: true })
 		.isIn(["trending", "ranging", "volatile", "choppy"])
@@ -57,12 +61,16 @@ export const createTradeValidator = [
 		.optional({ nullable: true })
 		.isBoolean()
 		.withMessage("Is fomo must be a boolean"),
-	body("entry_reason").notEmpty().withMessage("Entry reason is required"),
-	body("exit_reason").notEmpty().withMessage("Exit reason is required"),
+	body("entry_reason").optional().isString(),
+	body("exit_reason").optional().isString(),
 	body("photo")
 		.optional()
 		.isString()
 		.withMessage("Photo must be a string URL or path"),
+	body("before_photo")
+		.optional()
+		.isString()
+		.withMessage("Before photo must be a string URL or path"),
 	body("post_trade_thoughts")
 		.optional()
 		.isString()
@@ -81,6 +89,16 @@ export const createTradeValidator = [
 		.optional({ nullable: true })
 		.isIn(["IN", "NIN"])
 		.withMessage("Status must be either IN (ongoing) or NIN (completed)"),
+	body("tags").optional(),
+	body("exits").optional().isArray(),
+	body("exits.*.quantity")
+		.optional()
+		.isNumeric()
+		.withMessage("Exit quantity must be a number"),
+	body("exits.*.price")
+		.optional()
+		.isNumeric()
+		.withMessage("Exit price must be a number")
 ];
 
 export const updateTradeValidator = [
@@ -109,14 +127,16 @@ export const updateTradeValidator = [
 		.optional()
 		.isNumeric()
 		.withMessage("Entry price must be a number"),
-	// body('exit_price')
-	//   .optional()
-	//   .isNumeric()
-	//   .withMessage('Exit price must be a number'),
+	body("exit_price")
+		.optional()
+		.isNumeric()
+		.withMessage("Exit price must be a number"),
+	body("entry_reason").optional().isString(),
+	body("exit_reason").optional().isString(),
 	body("outcome")
 		.optional()
-		.isIn(["win", "loss", "neutral"])
-		.withMessage("Outcome must be win, loss, or neutral"),
+		.isIn(["win", "loss", "neutral", "missed"])
+		.withMessage("Outcome must be win, loss, neutral, or missed"),
 	body("market_condition")
 		.optional({ nullable: true })
 		.isIn(["trending", "ranging", "volatile", "choppy"])
@@ -173,9 +193,27 @@ export const updateTradeValidator = [
 		.optional()
 		.isString()
 		.withMessage("Photo must be a string URL or path"),
+	body("before_photo")
+		.optional()
+		.isString()
+		.withMessage("Before photo must be a string URL or path"),
+	body("portfolio_id")
+		.optional({ nullable: true })
+		.isNumeric()
+		.withMessage("Portfolio ID must be a number"),
 	body("timeframe_photos").optional(),
 	body("status")
 		.optional({ nullable: true })
 		.isIn(["IN", "NIN"])
 		.withMessage("Status must be either IN (ongoing) or NIN (completed)"),
+	body("tags").optional(),
+	body("exits").optional().isArray(),
+	body("exits.*.quantity")
+		.optional()
+		.isNumeric()
+		.withMessage("Exit quantity must be a number"),
+	body("exits.*.price")
+		.optional()
+		.isNumeric()
+		.withMessage("Exit price must be a number"),
 ];

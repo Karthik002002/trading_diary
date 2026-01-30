@@ -58,6 +58,14 @@ export const tradeSchema = z.object({
 		)
 		.optional(),
 	status: z.enum(["IN", "NIN"]).optional().default("NIN"),
+	exits: z
+		.array(
+			z.object({
+				quantity: z.coerce.number().positive(),
+				price: z.coerce.number().positive(),
+			}),
+		)
+		.optional(),
 });
 
 export type TradeFormValues = z.infer<typeof tradeSchema>;

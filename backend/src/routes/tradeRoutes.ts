@@ -11,6 +11,53 @@ import mongoose from "mongoose";
 import { upload } from "../middleware/uploadMiddleware";
 
 const router = express.Router();
+
+const parseTradeBody = (req: Request, res: Response, next: express.NextFunction) => {
+	if (req.body.rule_violations && typeof req.body.rule_violations === "string") {
+		try {
+			req.body.rule_violations = JSON.parse(req.body.rule_violations);
+		} catch (e) {
+			console.error("Error parsing rule_violations", e);
+			req.body.rule_violations = [];
+		}
+	}
+
+	if (req.body.timeframe_photos && typeof req.body.timeframe_photos === "string") {
+		try {
+			req.body.timeframe_photos = JSON.parse(req.body.timeframe_photos);
+		} catch (e) {
+			console.error("Error parsing timeframe_photos", e);
+			req.body.timeframe_photos = [];
+		}
+	}
+
+	if (req.body.tags && typeof req.body.tags === "string") {
+		try {
+			req.body.tags = JSON.parse(req.body.tags);
+		} catch (e) {
+			console.error("Error parsing tags", e);
+			req.body.tags = [];
+		}
+	}
+
+	if (req.body.exits && typeof req.body.exits === "string") {
+		try {
+			req.body.exits = JSON.parse(req.body.exits);
+		} catch (e) {
+			console.error("Error parsing exits", e);
+			req.body.exits = [];
+		}
+	}
+
+	if (req.body.is_greed === "true" || req.body.is_greed === "false") {
+		req.body.is_greed = req.body.is_greed === "true";
+	}
+	if (req.body.is_fomo === "true" || req.body.is_fomo === "false") {
+		req.body.is_fomo = req.body.is_fomo === "true";
+	}
+
+	next();
+};
 const buildTradeQuery = (query: any) => {
 	const { strategy_id, outcome, search, symbol, portfolio_id, status, tags } =
 		query;
@@ -243,20 +290,20 @@ router.get("/stats/execution-metric", async (req: Request, res: Response) => {
 				entryEfficiency:
 					execution.totalTrades > 0
 						? Number(
-								(
-									(execution.perfectEntries / execution.totalTrades) *
-									100
-								).toFixed(2),
-							)
+							(
+								(execution.perfectEntries / execution.totalTrades) *
+								100
+							).toFixed(2),
+						)
 						: 0,
 				exitEfficiency:
 					execution.totalTrades > 0
 						? Number(
-								(
-									(execution.perfectExits / execution.totalTrades) *
-									100
-								).toFixed(2),
-							)
+							(
+								(execution.perfectExits / execution.totalTrades) *
+								100
+							).toFixed(2),
+						)
 						: 0,
 			},
 			mistakes: {
@@ -323,6 +370,7 @@ router.get("/pnl/calendar", async (req: Request, res: Response) => {
 router.post(
 	"/",
 	upload.any(),
+	parseTradeBody,
 	createTradeValidator,
 	validateRequest,
 	async (req: Request, res: Response) => {
@@ -339,39 +387,17 @@ router.post(
 					req.body.before_photo = beforePhoto.path;
 				}
 
-				if (
-					req.body.rule_violations &&
-					typeof req.body.rule_violations === "string"
-				) {
-					req.body.rule_violations = JSON.parse(req.body.rule_violations);
-				}
-
-				if (
-					req.body.timeframe_photos &&
-					typeof req.body.timeframe_photos === "string"
-				) {
-					req.body.timeframe_photos = JSON.parse(req.body.timeframe_photos);
-				}
-
-				if (req.body.tags && typeof req.body.tags === "string") {
-					try {
-						const parsedTags = JSON.parse(req.body.tags);
-						if (Array.isArray(parsedTags)) {
-							const tagIds = await Promise.all(
-								parsedTags.map(async (tagName: string) => {
-									let tag = await Tag.findOne({ name: tagName });
-									if (!tag) {
-										tag = await Tag.create({ name: tagName });
-									}
-									return tag._id;
-								}),
-							);
-							req.body.tags = tagIds;
-						}
-					} catch (e) {
-						console.error("Error parsing tags", e);
-						req.body.tags = [];
-					}
+				if (Array.isArray(req.body.tags)) {
+					const tagIds = await Promise.all(
+						req.body.tags.map(async (tagName: string) => {
+							let tag = await Tag.findOne({ name: tagName });
+							if (!tag) {
+								tag = await Tag.create({ name: tagName });
+							}
+							return tag._id;
+						}),
+					);
+					req.body.tags = tagIds;
 				}
 
 				if (Array.isArray(req.body.timeframe_photos)) {
@@ -480,6 +506,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 router.put(
 	"/:id",
 	upload.any(),
+	parseTradeBody,
 	updateTradeValidator,
 	validateRequest,
 	async (req: Request, res: Response) => {
@@ -494,43 +521,21 @@ router.put(
 				if (mainPhoto) {
 					req.body.photo = mainPhoto.path;
 				}
-				const beforePhoto = files.find((f) => f.fieldname === "before_photos");
+				const beforePhoto = files.find((f) => f.fieldname === "before_photo");
 				if (beforePhoto) {
 					req.body.before_photo = beforePhoto.path;
 				}
-				if (
-					req.body.rule_violations &&
-					typeof req.body.rule_violations === "string"
-				) {
-					req.body.rule_violations = JSON.parse(req.body.rule_violations);
-				}
-
-				if (
-					req.body.timeframe_photos &&
-					typeof req.body.timeframe_photos === "string"
-				) {
-					req.body.timeframe_photos = JSON.parse(req.body.timeframe_photos);
-				}
-
-				if (req.body.tags && typeof req.body.tags === "string") {
-					try {
-						const parsedTags = JSON.parse(req.body.tags);
-						if (Array.isArray(parsedTags)) {
-							const tagIds = await Promise.all(
-								parsedTags.map(async (tagName: string) => {
-									let tag = await Tag.findOne({ name: tagName });
-									if (!tag) {
-										tag = await Tag.create({ name: tagName });
-									}
-									return tag._id;
-								}),
-							);
-							req.body.tags = tagIds;
-						}
-					} catch (e) {
-						console.error("Error parsing tags", e);
-						req.body.tags = [];
-					}
+				if (Array.isArray(req.body.tags)) {
+					const tagIds = await Promise.all(
+						req.body.tags.map(async (tagName: string) => {
+							let tag = await Tag.findOne({ name: tagName });
+							if (!tag) {
+								tag = await Tag.create({ name: tagName });
+							}
+							return tag._id;
+						}),
+					);
+					req.body.tags = tagIds;
 				}
 
 				if (Array.isArray(req.body.timeframe_photos)) {

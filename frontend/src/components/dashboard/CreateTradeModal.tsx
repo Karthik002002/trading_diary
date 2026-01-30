@@ -103,6 +103,7 @@ const CreateTradeModal: React.FC<Props> = ({
 			tags: [],
 			rule_violations: [],
 			timeframe_photos: [{ type: "30m", photo: null }],
+			exits: [],
 			status: "NIN", // Default to completed
 		},
 	});
@@ -111,33 +112,122 @@ const CreateTradeModal: React.FC<Props> = ({
 		control,
 		name: "timeframe_photos",
 	});
+
+	const {
+		fields: exitFields,
+		append: appendExit,
+		remove: removeExit,
+	} = useFieldArray({
+		control,
+		name: "exits",
+	});
+	const portfolio_id = useWatch({ control, name: "portfolio_id" });
+	const exit_price = Number(useWatch({ control, name: "exit_price" }));
 	const stop_loss = Number(useWatch({ control, name: "stop_loss" }));
 	const entry_price = Number(useWatch({ control, name: "entry_price" }));
+	const quantity = Number(useWatch({ control, name: "quantity" }));
+	const type = useWatch({ control, name: "type" });
+	const exits = useWatch({ control, name: "exits" }) || [];
 
+	const totalExitQuantity = useMemo(() => {
+		return exits.reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
+	}, [exits]);
+
+	useEffect(() => {
+		if (totalExitQuantity > quantity) {
+			message.error({
+				content: "Total exit quantity cannot exceed entry quantity",
+				key: "exit-qty-error",
+			});
+		}
+	}, [totalExitQuantity, quantity]);
 	const debouncedValidate = useMemo(
 		() =>
-			debounce((stop: number, entry: number) => {
-				if (!stop || !entry) return;
+			debounce(
+				(
+					stop: number,
+					entry: number,
+					qty: number,
+					portfolioId: number | null,
+					tradeType: "buy" | "sell",
+				) => {
+					if (!stop || !entry || !qty || !portfolioId || !portfolios) {
+						message.destroy("stop-loss-error");
+						return;
+					}
 
-				const stopLossDiff = ((stop - entry) / entry) * 100;
+					const portfolio = portfolios.find((p: any) => p.id === portfolioId);
+					if (!portfolio?.balance || maxLossNumber <= 0) return;
 
-				if (stopLossDiff < -maxLossNumber) {
-					message.error({
-						content: "Stop loss exceeds max loss percentage",
-						key: "stop-loss-error", // prevents stacking
-					});
-				}
-			}, 500),
-		[maxLossNumber],
+					const capital = portfolio.balance;
+					const allowedLoss = (capital * maxLossNumber) / 100;
+
+					// Calculate risk based on position type (Buy: entry - stop, Sell: stop - entry)
+					let riskAmount = 0;
+					if (tradeType === "buy") {
+						riskAmount = (entry - stop) * qty;
+					} else {
+						riskAmount = (stop - entry) * qty;
+					}
+
+					// If it's a profit or no risk, don't show error
+					if (riskAmount <= 0) {
+						message.destroy("stop-loss-error");
+						return;
+					}
+
+					const riskPercent = (riskAmount / capital) * 100;
+			
+					if (riskAmount > allowedLoss) {
+						message.error({
+							key: "stop-loss-error",
+							duration: 5,
+							content: `Risk Amount (${riskAmount.toFixed(2)} / ${riskPercent.toFixed(
+								2,
+							)}%) exceeds max loss limit of ${maxLossNumber}% (Allowed: ${allowedLoss.toFixed(
+								2,
+							)}) for portfolio ${portfolio.name}`,
+						});
+					} else {
+						message.destroy("stop-loss-error");
+					}
+				},
+				500,
+			),
+		[maxLossNumber, portfolios],
 	);
 
 	useEffect(() => {
-		debouncedValidate(stop_loss, entry_price);
+		if (!isDirty && !tradeToEdit) {
+			message.destroy("stop-loss-error");
+			return;
+		}
+
+		// Use stop_loss if available, otherwise fallback to exit_price for risk calculation
+		const relevantStop = exit_price || stop_loss;
+
+		debouncedValidate(
+			relevantStop,
+			entry_price,
+			quantity,
+			(portfolio_id as number | null) ?? null,
+			type as "buy" | "sell",
+		);
 
 		return () => {
 			debouncedValidate.cancel();
 		};
-	}, [stop_loss, entry_price, debouncedValidate]);
+	}, [
+		exit_price,
+		stop_loss,
+		entry_price,
+		quantity,
+		portfolio_id,
+		type,
+		debouncedValidate,
+		isDirty,
+		tradeToEdit,
+	]);
 
 	/** Populate form on edit */
 	useEffect(() => {
@@ -159,6 +249,11 @@ const CreateTradeModal: React.FC<Props> = ({
 				outcome: tradeToEdit.outcome ?? "neutral",
 				is_greed: tradeToEdit.is_greed ?? false,
 				is_fomo: tradeToEdit.is_fomo ?? false,
+				market_condition: (tradeToEdit as any).market_condition ?? "trending",
+				entry_execution: (tradeToEdit as any).entry_execution ?? "perfect",
+				exit_execution: (tradeToEdit as any).exit_execution ?? "perfect",
+				emotional_state: (tradeToEdit as any).emotional_state ?? "calm",
+				post_trade_thoughts: tradeToEdit.post_trade_thoughts ?? "",
 				tags:
 					tradeToEdit.tags?.map((t: any) =>
 						typeof t === "string" ? t : t.name,
@@ -169,10 +264,17 @@ const CreateTradeModal: React.FC<Props> = ({
 				timeframe_photos:
 					tradeToEdit.timeframe_photos?.length > 0
 						? tradeToEdit.timeframe_photos.map((tp) => ({
-							type: tp.type,
-							photo: tp.photo,
-						}))
+								type: tp.type,
+								photo: tp.photo,
+							}))
 						: [{ type: "4h", photo: null }],
+				exits:
+					tradeToEdit.exits && tradeToEdit.exits?.length > 0
+						? tradeToEdit.exits.map((e: any) => ({
+								quantity: e.quantity,
+								price: e.price,
+							}))
+						: [],
 				status: (tradeToEdit as any).status ?? "NIN",
 			});
 		}
@@ -187,7 +289,13 @@ const CreateTradeModal: React.FC<Props> = ({
 		console.log(data, values);
 
 		// Skip these keys - they need special handling
-		const skipKeys = ["tags", "rule_violations", "photo", "timeframe_photos"];
+		const skipKeys = [
+			"tags",
+			"rule_violations",
+			"photo",
+			"timeframe_photos",
+			"exits",
+		];
 
 		Object.entries(values).forEach(([key, value]) => {
 			if (skipKeys.includes(key)) return;
@@ -203,6 +311,7 @@ const CreateTradeModal: React.FC<Props> = ({
 			"rule_violations",
 			JSON.stringify(values.rule_violations ?? []),
 		);
+		data.append("exits", JSON.stringify(values.exits ?? []));
 
 		// Handle main photo - support both File and Blob (from clipboard paste)
 		if (values.photo instanceof File || values.photo instanceof Blob) {
@@ -263,7 +372,13 @@ const CreateTradeModal: React.FC<Props> = ({
 				},
 			);
 		} else {
-			createMutation.mutate(data, { onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] }); queryClient.invalidateQueries({ queryKey: ["strategy-limits"] }); onClose() } });
+			createMutation.mutate(data, {
+				onSuccess: () => {
+					queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
+					queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
+					onClose();
+				},
+			});
 		}
 	};
 
@@ -298,7 +413,7 @@ const CreateTradeModal: React.FC<Props> = ({
 				: typeof option.label === "number"
 					? option.label.toString()
 					: // ReactNode case (e.g. <span>...</span>)
-					((option.label as any)?.props?.children?.toString?.() ?? "");
+						((option.label as any)?.props?.children?.toString?.() ?? "");
 
 		const valueText = option.value?.toString?.() ?? "";
 
@@ -314,9 +429,7 @@ const CreateTradeModal: React.FC<Props> = ({
 
 			// Ensure we have at least the 3 data points
 			if (!res.stoploss || !res.target || !res.entry) {
-				message.error(
-					"Clipboard history needs 3 data points (SL, TP, Entry).",
-				);
+				message.error("Clipboard history needs 3 data points (SL, TP, Entry).");
 				return;
 			}
 
@@ -325,7 +438,11 @@ const CreateTradeModal: React.FC<Props> = ({
 			const tpNum = Number(res.target);
 			const entryNum = Number(res.entry);
 
-			if (Number.isNaN(slNum) || Number.isNaN(tpNum) || Number.isNaN(entryNum)) {
+			if (
+				Number.isNaN(slNum) ||
+				Number.isNaN(tpNum) ||
+				Number.isNaN(entryNum)
+			) {
 				message.error("Clipboard data contains invalid numbers");
 				return;
 			}
@@ -356,10 +473,10 @@ const CreateTradeModal: React.FC<Props> = ({
 	};
 
 	useHotkeys("alt+v", async (e) => {
-		e.preventDefault()
-		e.stopPropagation()
-		await handlePasteData()
-	})
+		e.preventDefault();
+		e.stopPropagation();
+		await handlePasteData();
+	});
 	return (
 		<Modal
 			open={isOpen}
@@ -389,8 +506,6 @@ const CreateTradeModal: React.FC<Props> = ({
 					},
 				)}
 			>
-
-
 				<Collapse
 					defaultActiveKey={["trade", "psychological", "photos"]}
 					ghost
@@ -750,6 +865,74 @@ const CreateTradeModal: React.FC<Props> = ({
 											)}
 										/>
 									</Form.Item>
+
+									<div style={{ gridColumn: "span 2" }} className="mt-4">
+										<Typography.Title level={5}>Partial Exits</Typography.Title>
+										{exitFields.length === 0 && (
+											<Typography.Text type="secondary" className="block mb-4">
+												No partial exits added. The Exit Price above will be
+												used.
+											</Typography.Text>
+										)}
+										{exitFields.map((field, index) => (
+											<div
+												key={field.id}
+												style={{
+													display: "grid",
+													gridTemplateColumns: "1fr 1fr auto",
+													gap: "12px",
+													marginBottom: "12px",
+													alignItems: "end",
+												}}
+											>
+												<Form.Item label="Qty" style={{ marginBottom: 0 }}>
+													<Controller
+														control={control}
+														name={`exits.${index}.quantity`}
+														render={({ field }) => (
+															<InputNumber
+																{...field}
+																className="w-full"
+																min={0}
+															/>
+														)}
+													/>
+												</Form.Item>
+												<Form.Item label="Price" style={{ marginBottom: 0 }}>
+													<Controller
+														control={control}
+														name={`exits.${index}.price`}
+														render={({ field }) => (
+															<InputNumber
+																{...field}
+																className="w-full"
+																step={0.01}
+															/>
+														)}
+													/>
+												</Form.Item>
+												<Button
+													type="text"
+													danger
+													icon={<DeleteOutlined />}
+													onClick={() => removeExit(index)}
+												/>
+											</div>
+										))}
+										<Button
+											type="dashed"
+											onClick={() =>
+												appendExit({
+													quantity: 0,
+													price: 0,
+												})
+											}
+											icon={<PlusOutlined />}
+											block
+										>
+											Add Exit
+										</Button>
+									</div>
 								</div>
 							),
 						},

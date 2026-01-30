@@ -14,7 +14,7 @@ export interface Trade {
 	photo: string | null;
 	notes: string | null;
 	exit_reason: string;
-	outcome: "win" | "loss" | "neutral";
+	outcome: "win" | "loss" | "neutral" | "missed";
 	entry_price: number;
 	exit_price: number;
 	take_profit: number;
@@ -34,6 +34,7 @@ export interface Trade {
 	updatedAt?: string;
 	post_trade_thoughts?: string;
 	rule_violations?: string[];
+	exits?: { quantity: number; price: number }[];
 }
 
 export interface Strategy {

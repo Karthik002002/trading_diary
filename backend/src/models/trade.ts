@@ -11,9 +11,10 @@ export interface ITrade extends Document {
 	confidence_level: number | null;
 	entry_reason: string;
 	photo: string | null;
+	before_photo: string | null;
 	notes: string | null;
 	exit_reason: string;
-	outcome: "win" | "loss" | "neutral";
+	outcome: "win" | "loss" | "neutral" | "missed";
 	entry_price: number;
 	exit_price: number;
 	stop_loss: number;
@@ -29,11 +30,12 @@ export interface ITrade extends Document {
 	market_condition: string | null;
 	entry_execution: string | null;
 	exit_execution: string | null;
-	emotional_state: string[] | null;
+	emotional_state: string | null;
 	post_trade_thoughts: string | null;
 	rule_violations: string[] | null;
 	tags: any[];
 	timeframe_photos: { type: string; photo: string }[];
+	exits: { quantity: number; price: number; }[];
 	status: "IN" | "NIN";
 }
 
@@ -53,12 +55,16 @@ const TradeSchema: Schema = new Schema(
 			required: false,
 			default: null,
 		},
-		entry_reason: { type: String, required: true },
+		entry_reason: { type: String, required: false, default: "" },
 		photo: { type: String, required: false, default: null },
 		before_photo: { type: String, required: false, default: null },
 		notes: { type: String, required: false, default: null },
-		exit_reason: { type: String, required: true },
-		outcome: { type: String, enum: ["win", "loss", "neutral"], required: true },
+		exit_reason: { type: String, required: false, default: "" },
+		outcome: {
+			type: String,
+			enum: ["win", "loss", "neutral", "missed"],
+			required: true,
+		},
 		entry_price: { type: Number, required: true },
 		exit_price: { type: Number, required: false },
 		stop_loss: { type: Number, required: false },
@@ -88,9 +94,9 @@ const TradeSchema: Schema = new Schema(
 			required: false,
 		},
 		emotional_state: {
-			type: [String],
+			type: String,
 			enum: ["calm", "anxious", "overconfident", "fearful", "tilted"],
-			default: [],
+			default: "calm",
 		},
 		post_trade_thoughts: { type: String, required: false, default: null },
 		rule_violations: {
@@ -130,6 +136,15 @@ const TradeSchema: Schema = new Schema(
 			required: false,
 			default: "NIN",
 		},
+		exits: {
+			type: [
+				{
+					quantity: { type: Number, required: true },
+					price: { type: Number, required: true },
+				},
+			],
+			default: [],
+		},
 	},
 	{
 		timestamps: true,
@@ -159,10 +174,32 @@ TradeSchema.pre("save", function () {
 	// ------------------------
 	let grossProfit = 0;
 
-	if (type === "buy") {
-		grossProfit = (exit_price - entry_price) * quantity;
-	} else if (type === "sell") {
-		grossProfit = (entry_price - exit_price) * quantity;
+	if (trade.exits && trade.exits.length > 0) {
+		let totalExitedQty = 0;
+		for (const exit of trade.exits) {
+			if (type === "buy") {
+				grossProfit += (exit.price - entry_price) * exit.quantity;
+			} else if (type === "sell") {
+				grossProfit += (entry_price - exit.price) * exit.quantity;
+			}
+			totalExitedQty += exit.quantity;
+		}
+
+		// If there's remaining quantity not covered by partial exits, use the final exit_price
+		const remainingQty = quantity - totalExitedQty;
+		if (remainingQty > 0 && exit_price != null) {
+			if (type === "buy") {
+				grossProfit += (exit_price - entry_price) * remainingQty;
+			} else if (type === "sell") {
+				grossProfit += (entry_price - exit_price) * remainingQty;
+			}
+		}
+	} else {
+		if (type === "buy") {
+			grossProfit = (exit_price - entry_price) * quantity;
+		} else if (type === "sell") {
+			grossProfit = (entry_price - exit_price) * quantity;
+		}
 	}
 
 	trade.pl = grossProfit - (fees ?? 0);
@@ -192,14 +229,10 @@ TradeSchema.pre("save", function () {
 	}
 
 	// ------------------------
-	// Returns % - must account for trade type
+	// Returns %
 	// ------------------------
-	let returnPercent = 0;
-	if (type === "buy") {
-		returnPercent = ((exit_price - entry_price) / entry_price) * 100;
-	} else if (type === "sell") {
-		returnPercent = ((entry_price - exit_price) / entry_price) * 100;
-	}
+	const totalInvestment = entry_price * quantity;
+	const returnPercent = totalInvestment > 0 ? (grossProfit / totalInvestment) * 100 : 0;
 	trade.returns = Number(returnPercent.toFixed(2));
 });
 
