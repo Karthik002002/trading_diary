@@ -82,9 +82,7 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
 	return (
 		<div className="bg-surface rounded-2xl p-6 border border-gray-700 shadow-xl mt-2">
 			<div className="flex justify-between items-center mb-6">
-				<h2 className="text-xl font-bold bg-linear-to-r from-white to-gray-400 bg-clip-text text-transparent">
-					Trading Calendar
-				</h2>
+				<h2 className="text-xl font-bold  bg-clip-text "> Calendar</h2>
 				<div className="flex items-center space-x-4">
 					<button
 						onClick={prevMonth}

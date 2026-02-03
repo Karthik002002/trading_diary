@@ -18,7 +18,7 @@ const StrategyLimitMonitor = () => {
             // Weekly Check
             if (s.weeklyLossLimit) {
                 const ratio = s.currentWeeklyLoss / s.weeklyLossLimit;
-                const key = `${s.strategyId}-weekly`;
+                const key = `${s.strategyId}-${s.portfolioId}-weekly`;
 
                 if (ratio >= 1) {
                     // Exceeded
@@ -58,7 +58,7 @@ const StrategyLimitMonitor = () => {
             // Monthly Check
             if (s.monthlyLossLimit) {
                 const ratio = s.currentMonthlyLoss / s.monthlyLossLimit;
-                const key = `${s.strategyId}-monthly`;
+                const key = `${s.strategyId}-${s.portfolioId}-monthly`;
 
                 if (ratio >= 1) {
                     // Exceeded
@@ -98,7 +98,7 @@ const StrategyLimitMonitor = () => {
             // Consecutive Loss Check
             if (s.consecutiveLossLimit) {
                 const streak = s.currentConsecutiveLosses;
-                const key = `${s.strategyId}-consecutive`;
+                const key = `${s.strategyId}-${s.portfolioId}-consecutive`;
 
                 if (streak >= s.consecutiveLossLimit) {
                     setNotifiedExceeded(prev => prev.has(key) ? prev : new Set(prev).add(key));
@@ -140,7 +140,7 @@ const StrategyLimitMonitor = () => {
                 placement="right"
                 onClose={() => setIsOpen(false)}
                 open={isOpen}
-                size={400}
+                size={window.innerWidth * 0.6}
             >
                 <List
                     dataSource={limits || []}
@@ -151,7 +151,7 @@ const StrategyLimitMonitor = () => {
                         return (
                             <List.Item>
                                 <div className="w-full">
-                                    <Typography.Title level={5}>{s.strategyName}</Typography.Title>
+                                    <Typography.Title level={5}>{s.strategyName} <Text type="secondary" style={{ fontSize: '14px' }}>( {s.portfolioName} )</Text></Typography.Title>
 
                                     <div className="mt-2 space-y-2">
                                         {s.weeklyLossLimit && (

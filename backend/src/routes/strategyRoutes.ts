@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { validateRequest } from "../middleware/validateRequest";
 import Strategy from "../models/strategy";
 import Trade from "../models/trade";
+import Portfolio from "../models/portfolio";
 import {
 	createStrategyValidator,
 	updateStrategyValidator,
@@ -14,18 +15,23 @@ const router = express.Router();
 router.get("/status/limits", async (req: Request, res: Response) => {
 	try {
 		const strategies = await Strategy.find();
+		const portfolios = await Portfolio.find();
 		const now = dayjs();
 		const startOfWeek = now.startOf("week").toDate();
 		const startOfMonth = now.startOf("month").toDate();
 
-		const status = await Promise.all(
-			strategies.map(async (strategy) => {
+		const status: any[] = [];
+
+		for (const strategy of strategies) {
+			for (const portfolio of portfolios) {
 				const weeklyTrades = await Trade.find({
 					strategy_id: strategy.id,
+					portfolio_id: portfolio.id,
 					trade_date: { $gte: startOfWeek },
 				});
 				const monthlyTrades = await Trade.find({
 					strategy_id: strategy.id,
+					portfolio_id: portfolio.id,
 					trade_date: { $gte: startOfMonth },
 				});
 
@@ -44,7 +50,10 @@ router.get("/status/limits", async (req: Request, res: Response) => {
 					monthlyPL < 0 ? Number(Math.abs(monthlyPL).toFixed(2)) : 0;
 
 				// Calculate consecutive losses
-				const recentTrades = await Trade.find({ strategy_id: strategy.id })
+				const recentTrades = await Trade.find({
+					strategy_id: strategy.id,
+					portfolio_id: portfolio.id
+				})
 					.sort({ trade_date: -1 })
 					.limit(20); // Check last 20 trades for streak
 
@@ -55,31 +64,26 @@ router.get("/status/limits", async (req: Request, res: Response) => {
 					} else if (trade.outcome === "win") {
 						break; // Streak broken by a win
 					}
-					// Neutral trades might not break the streak or might? 
-					// Usually in trading, 'consecutive loss' refers to losing trades back-to-back.
-					// Let's assume neutral doesn't break it but doesn't increment it? 
-					// Actually, most systems consider any non-loss as a break or at least win as a break.
-					// Let's go with: Win breaks it. Neutral ignored.
 				}
 
-				// Optionally store it back to the strategy if it changed
-				if (strategy.currentConsecutiveLosses !== currentConsecutiveLosses) {
-					strategy.currentConsecutiveLosses = currentConsecutiveLosses;
-					await strategy.save();
-				}
-
-				return {
+				// Only add to status if there's relevant data or limits defined
+				// Logic: If limits are set, we want to see the status even if 0. 
+				// If no limits set, and no losses, maybe skip?
+				// For now, let's include all to ensure visibility as per request "consider all available portfolios"
+				status.push({
 					strategyId: strategy.id,
 					strategyName: strategy.name,
+					portfolioId: portfolio.id,
+					portfolioName: portfolio.name,
 					weeklyLossLimit: strategy.weeklyLossLimit,
 					monthlyLossLimit: strategy.monthlyLossLimit,
 					consecutiveLossLimit: strategy.consecutiveLossLimit,
 					currentWeeklyLoss,
 					currentMonthlyLoss,
 					currentConsecutiveLosses,
-				};
-			}),
-		);
+				});
+			}
+		}
 
 		res.json(status);
 	} catch (error: any) {

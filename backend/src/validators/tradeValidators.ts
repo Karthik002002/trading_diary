@@ -75,7 +75,7 @@ export const createTradeValidator = [
 		.optional()
 		.isString()
 		.withMessage("Post trade thoughts must be a string"),
-	body("rule_violations").optional(),
+	body("rule_violations").optional().isArray().withMessage("Rule violations must be an array"),
 	body("timeframe_photos").optional(),
 	body("stop_loss")
 		.optional()
@@ -171,8 +171,8 @@ export const updateTradeValidator = [
 		.withMessage("Post trade thoughts must be a string"),
 	body("rule_violations")
 		.optional()
-		.isString()
-		.withMessage("Rule violations must be a string"),
+		.isArray()
+		.withMessage("Rule violations must be a Array"),
 	body("stop_loss")
 		.optional()
 		.isNumeric()
