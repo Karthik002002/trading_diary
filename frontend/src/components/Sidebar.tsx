@@ -1,8 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import classNames from "classnames";
 import { Icon } from "./ui/Icon";
-import { getIntegrationStatus, queryClient } from "../api/client";
-import type { TDhanStatus } from "../types/api";
+import { getIntegrationStatus } from "../api/client";
 import { useQuery } from "@tanstack/react-query";
 
 interface SidebarProps {
@@ -16,11 +15,11 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 		queryKey: ["integrationStatus"],
 		queryFn: getIntegrationStatus,
 	});
-	const getIsDhanEnabled = statusData
+	const getIsDhanEnabled = statusData;
 
 	return (
 		<div
-			className={`fixed top-0 left-0 h-full bg-surface/95 backdrop-blur-sm border-r border-border border-gray-700 text-white flex flex-col transition-all duration-300 z-50 shadow-xl ${isCollapsed ? "w-16" : "w-50"}`}
+			className={`fixed top-0 left-0 h-full bg-surface/95 backdrop-blur-sm border-r border-border text-white flex flex-col transition-all duration-300 z-50 shadow-xl ${isCollapsed ? "w-16" : "w-50"}`}
 		>
 			<div
 				className={classNames(
@@ -47,7 +46,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 					className="flex items-center space-x-3 py-3 px-2  rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary  group border border-transparent [&.active]:border-primary/20"
 					title={isCollapsed ? "Dashboard" : ""}
 				>
-					<div className={classNames("min-w-[20px] flex ")}>
+					<div className={classNames("min-w-5 flex ")}>
 						<Icon
 							name={activeLocation.pathname === "/" ? "home-active" : "home"}
 							size={{ height: 20, width: 20 }}
@@ -66,7 +65,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 					className="flex items-center space-x-3 py-3 px-2  rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary  group border border-transparent [&.active]:border-primary/20"
 					title={isCollapsed ? "Charts" : ""}
 				>
-					<div className={classNames("min-w-[20px] flex justify-center")}>
+					<div className={classNames("min-w-5 flex justify-center")}>
 						<Icon
 							name={
 								activeLocation.pathname === "/charts" ? "chart-active" : "chart"
@@ -83,25 +82,25 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 					)}
 				</Link>
 				<Link
-					to="/settings"
-					className={`flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20`}
-					title={isCollapsed ? "Settings" : ""}
+					to="/goals"
+					className="flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20"
+					title={isCollapsed ? "Goals" : ""}
 				>
-					<div className="min-w-[20px] flex justify-center">
+					<div className="min-w-5 flex justify-center">
 						<Icon
 							name={
-								activeLocation.pathname === "/settings"
-									? "settings-active"
-									: "settings"
+								activeLocation.pathname === "/goals"
+									? "list-checked"
+									: "list-default"
 							}
 							size={{ height: 20, width: 20 }}
 						/>
 					</div>
 					{!isCollapsed && (
 						<span
-							className={`font-medium ${activeLocation.pathname === "/settings" ? "text-violet-800" : "text-white"}`}
+							className={`font-medium ${activeLocation.pathname === "/goals" ? "text-violet-800" : "text-white"}`}
 						>
-							Settings
+							Goals
 						</span>
 					)}
 				</Link>
@@ -110,7 +109,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 					className={`flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20`}
 					title={isCollapsed ? "Integrations" : ""}
 				>
-					<div className="min-w-[20px] flex justify-center">
+					<div className="min-w-5 flex justify-center">
 						<Icon
 							name={
 								activeLocation.pathname === "/integrations"
@@ -128,13 +127,36 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 						</span>
 					)}
 				</Link>
+				<Link
+					to="/settings"
+					className={`flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20`}
+					title={isCollapsed ? "Settings" : ""}
+				>
+					<div className="min-w-5 flex justify-center">
+						<Icon
+							name={
+								activeLocation.pathname === "/settings"
+									? "settings-active"
+									: "settings"
+							}
+							size={{ height: 20, width: 20 }}
+						/>
+					</div>
+					{!isCollapsed && (
+						<span
+							className={`font-medium ${activeLocation.pathname === "/settings" ? "text-violet-800" : "text-white"}`}
+						>
+							Settings
+						</span>
+					)}
+				</Link>
 				{getIsDhanEnabled?.enable && (
 					<Link
 						to="/dhan"
 						className={`flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20`}
 						title={isCollapsed ? "Integrations" : ""}
 					>
-						<div className="min-w-[20px] flex justify-center">
+						<div className="min-w-5 flex justify-center">
 							<Icon
 								name={activeLocation.pathname === "/dhan" ? "dhan" : "dhan"}
 								size={{ height: 20, width: 20 }}
@@ -150,7 +172,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 					</Link>
 				)}
 			</nav>
-			<div className="p-4 border-t border-border border-gray-700 text-xs text-secondary text-center truncate font-mono">
+			<div className="p-4 border-t border-border text-xs text-secondary text-center truncate font-mono">
 				{!isCollapsed ? "v1.0.0" : "v1"}
 			</div>
 		</div>

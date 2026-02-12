@@ -30,6 +30,8 @@ export type TPreferenceStore = {
 	) => void;
 	maxLoss: string;
 	setMaxLoss: (maxLoss: string) => void;
+	currency: string;
+	setCurrency: (currency: string) => void;
 	dataPreference: TDataPReferences;
 	setDataPreference: (
 		s: TDataPReference,
@@ -87,6 +89,8 @@ export const preferenceStore = create<TPreferenceStore>()(
 				}),
 			maxLoss: "",
 			setMaxLoss: (maxLoss: string) => set({ maxLoss: maxLoss }),
+			currency: "₹",
+			setCurrency: (currency: string) => set({ currency: currency }),
 			dataPreference: { portfolio_id: undefined, strategy_id: undefined },
 			setDataPreference: (s, value) =>
 				set((prev) => {

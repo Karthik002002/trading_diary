@@ -70,6 +70,8 @@ export interface PnlCalendarDay {
 	pnl: number;
 	returns: number;
 	count: number;
+	trades_count: Record<string, number>;
+	portfolio_names: string[];
 }
 
 export interface PnlCalendarResponse {
@@ -123,3 +125,30 @@ export type TDhanStatus = {
 	message?: string;
 	clientId?: string;
 };
+
+export interface Portfolio {
+	_id: string;
+	id: number;
+	name: string;
+	balance: number;
+	is_testing: boolean;
+	createdAt?: string;
+	updatedAt?: string;
+}
+
+export interface Goal {
+	_id: string;
+	id: number;
+	name: string;
+	goal_type: "REAL" | "TESTING";
+	target_amount: number;
+
+	start_date: string;
+	end_date: string;
+	portfolio_ids: number[];
+	status: "ACTIVE" | "COMPLETED" | "ARCHIVED";
+	current_amount: number;
+	progress_percentage: number;
+	createdAt?: string;
+	updatedAt?: string;
+}

@@ -207,6 +207,7 @@ const Dashboard: React.FC = () => {
 						maxTagCount="responsive"
 					/>
 				</div>
+
 				<div className="col-span-3">
 					<Input
 						value={filters.search || ""}

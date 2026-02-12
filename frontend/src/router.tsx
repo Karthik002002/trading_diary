@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import Charts from "./pages/Charts";
 import Integrations from "./pages/Integrations";
+import Goals from "./pages/Goals";
 
 const rootRoute = createRootRoute({
 	component: Layout,
@@ -73,6 +74,12 @@ const integrationsRoute = createRoute({
 	path: "/integrations",
 	component: Integrations,
 });
+
+const goalsRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/goals",
+	component: Goals,
+});
 const dhanRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/dhan",
@@ -115,6 +122,7 @@ const routeTree = rootRoute.addChildren([
 	settingsRoute,
 	chartsRoute,
 	integrationsRoute,
+	goalsRoute,
 	dhanRouteWithChildren,
 ]);
 

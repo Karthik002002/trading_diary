@@ -2,11 +2,13 @@ import { Badge, Drawer, FloatButton, List, notification, Tag, Typography } from 
 import { useEffect, useState, useMemo } from "react";
 import { useStrategyLimits } from "../hooks/useResources";
 import { WarningOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import { usePreferenceStore } from "../store/preferenceStore";
 
 const { Text } = Typography;
 
 const StrategyLimitMonitor = () => {
     const { data: limits } = useStrategyLimits();
+    const { currency } = usePreferenceStore();
     const [isOpen, setIsOpen] = useState(false);
     const [notifiedExceeded, setNotifiedExceeded] = useState<Set<string>>(new Set());
     const [notifiedWarning, setNotifiedWarning] = useState<Set<string>>(new Set());
@@ -159,7 +161,7 @@ const StrategyLimitMonitor = () => {
                                                 <span>Weekly:</span>
                                                 <div>
                                                     <Text delete={wRatio >= 1} type={wRatio >= 1 ? "danger" : (wRatio >= 0.9 ? "warning" : "secondary")}>
-                                                        ₹{s.currentWeeklyLoss} / ₹{s.weeklyLossLimit}
+                                                        {currency}{s.currentWeeklyLoss} / {currency}{s.weeklyLossLimit}
                                                     </Text>
                                                     {wRatio >= 1 && <Tag color="error" className="ml-2">EXCEEDED</Tag>}
                                                     {wRatio >= 0.9 && wRatio < 1 && <Tag color="warning" className="ml-2">90%+</Tag>}
@@ -172,7 +174,7 @@ const StrategyLimitMonitor = () => {
                                                 <span>Monthly:</span>
                                                 <div>
                                                     <Text delete={mRatio >= 1} type={mRatio >= 1 ? "danger" : (mRatio >= 0.9 ? "warning" : "secondary")}>
-                                                        ₹{s.currentMonthlyLoss} / ₹{s.monthlyLossLimit}
+                                                        {currency}{s.currentMonthlyLoss} / {currency}{s.monthlyLossLimit}
                                                     </Text>
                                                     {mRatio >= 1 && <Tag color="error" className="ml-2">EXCEEDED</Tag>}
                                                     {mRatio >= 0.9 && mRatio < 1 && <Tag color="warning" className="ml-2">90%+</Tag>}

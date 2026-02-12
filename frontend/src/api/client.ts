@@ -8,6 +8,7 @@ import type {
 	TFilters,
 	TimeseriesResponse,
 	TradeResponse,
+	Goal,
 } from "../types/api";
 import { message } from "antd";
 
@@ -259,4 +260,43 @@ export const fetchClipboardData = async (): Promise<ClipboardData> => {
 	if (!response.ok) throw new Error("Failed to fetch clipboard data");
 	const data = await response.json();
 	return data.data;
+};
+
+export const fetchGoals = async (type?: string): Promise<Goal[]> => {
+	const params = new URLSearchParams();
+	if (type) params.append("type", type);
+
+	const response = await fetch(`${BASE_URL}/goals?${params.toString()}`);
+	if (!response.ok) throw new Error("Failed to fetch goals");
+	return response.json();
+};
+
+export const createGoal = async (goalData: Partial<Goal>): Promise<Goal> => {
+	const response = await fetch(`${BASE_URL}/goals`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(goalData),
+	});
+	if (!response.ok) throw new Error("Failed to create goal");
+	return response.json();
+};
+
+export const updateGoal = async (
+	id: number,
+	goalData: Partial<Goal>,
+): Promise<Goal> => {
+	const response = await fetch(`${BASE_URL}/goals/${id}`, {
+		method: "PUT",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(goalData),
+	});
+	if (!response.ok) throw new Error("Failed to update goal");
+	return response.json();
+};
+
+export const deleteGoal = async (id: number): Promise<void> => {
+	const response = await fetch(`${BASE_URL}/goals/${id}`, {
+		method: "DELETE",
+	});
+	if (!response.ok) throw new Error("Failed to delete goal");
 };

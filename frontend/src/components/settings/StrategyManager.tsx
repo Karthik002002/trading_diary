@@ -10,8 +10,10 @@ import {
 } from "../../hooks/useResources";
 import { VirtualTable } from "../VirtualTable";
 import StrategyEditor from "../../editor";
+import { usePreferenceStore } from "../../store/preferenceStore";
 
 const StrategyManager = () => {
+	const { currency } = usePreferenceStore();
 	const { data: strategies, isLoading } = useStrategies();
 	const createMutation = useCreateStrategy();
 	const updateMutation = useUpdateStrategy();
@@ -78,7 +80,7 @@ const StrategyManager = () => {
 				header: "W. Limit",
 				cell: (info) =>
 					info.getValue() ? (
-						<span className="text-red-400">₹{info.getValue()}</span>
+						<span className="text-red-400">{currency}{info.getValue()}</span>
 					) : (
 						"-"
 					),
@@ -88,7 +90,7 @@ const StrategyManager = () => {
 				header: "M. Limit",
 				cell: (info) =>
 					info.getValue() ? (
-						<span className="text-red-500 font-bold">₹{info.getValue()}</span>
+						<span className="text-red-500 font-bold">{currency}{info.getValue()}</span>
 					) : (
 						"-"
 					),

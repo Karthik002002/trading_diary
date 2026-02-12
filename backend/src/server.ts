@@ -12,6 +12,7 @@ import integrationRoutes from "./routes/integrationRoutes";
 import os from "node:os";
 import customScript from "./customScripts";
 import clipboardRoutes from "./routes/clipboardRoutes";
+import goalRoutes from "./routes/goalRoutes";
 import { startClipboardMonitor } from "./clipboardStore";
 
 dotenv.config();
@@ -58,6 +59,7 @@ app.use("/api/tags", tagRoutes);
 app.use("/api/graph", graphRouter);
 app.use("/api/integrations", integrationRoutes);
 app.use("/api/clipboard", clipboardRoutes);
+app.use("/api/goals", goalRoutes);
 
 app.use("/uploads", express.static("uploads"));
 

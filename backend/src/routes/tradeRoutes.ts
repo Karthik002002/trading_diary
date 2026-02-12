@@ -59,7 +59,7 @@ const parseTradeBody = (req: Request, res: Response, next: express.NextFunction)
 	next();
 };
 const buildTradeQuery = (query: any) => {
-	const { strategy_id, outcome, search, symbol, portfolio_id, status, tags } =
+	const { strategy_id, outcome, search, symbol, portfolio_id, status, tags, from, to } =
 		query;
 	const mongoQuery: any = {};
 
@@ -340,25 +340,71 @@ router.get("/pnl/calendar", async (req: Request, res: Response) => {
 				},
 			},
 			{
+				$lookup: {
+					from: "portfolios",
+					localField: "portfolio_id",
+					foreignField: "id",
+					as: "portfolio"
+				}
+			},
+			{
+				$unwind: {
+					path: "$portfolio",
+					preserveNullAndEmptyArrays: true
+				}
+			},
+			{
 				$group: {
-					_id: { $dateToString: { format: "%Y-%m-%d", date: "$trade_date" } },
+					_id: {
+						date: { $dateToString: { format: "%Y-%m-%d", date: "$trade_date" } },
+						portfolio: "$portfolio.name"
+					},
 					totalReturn: { $sum: "$returns" },
 					totalPnl: { $sum: "$pl" },
 					count: { $sum: 1 },
 				},
 			},
 			{
+				$group: {
+					_id: "$_id.date",
+					totalReturn: { $sum: "$totalReturn" },
+					totalPnl: { $sum: "$totalPnl" },
+					totalCount: { $sum: "$count" },
+					portfolios: {
+						$push: {
+							name: "$_id.portfolio",
+							count: "$count"
+						}
+					}
+				}
+			},
+			{
 				$sort: { _id: 1 }, // Sort by date ascending
 			},
 		]);
 
-		// Format for frontend: { date: 'YYYY-MM-DD', pnl: 123, count: 5 }
-		const result = trades.map((t) => ({
-			date: t._id,
-			pnl: t.totalPnl,
-			returns: t.totalReturn,
-			count: t.count,
-		}));
+		// Format for frontend
+		const result = trades.map((t) => {
+			const trades_count: Record<string, number> = {};
+			const portfolio_names: string[] = [];
+
+			t.portfolios.forEach((p: any) => {
+				const name = p.name || "Unknown";
+				trades_count[name] = p.count;
+				if (!portfolio_names.includes(name)) {
+					portfolio_names.push(name);
+				}
+			});
+
+			return {
+				date: t._id,
+				pnl: t.totalPnl,
+				returns: t.totalReturn,
+				count: t.totalCount,
+				trades_count,
+				portfolio_names
+			};
+		});
 
 		res.json(result);
 	} catch (error: any) {

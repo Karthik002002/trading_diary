@@ -1,7 +1,8 @@
 import { createColumnHelper } from "@tanstack/react-table";
-import { Button, Input, InputNumber, Modal, Select, Tabs, Tag, Table, message, Flex } from "antd";
+import { Button, Input, InputNumber, Modal, Select, Tabs, Tag, Table, message, Flex, Switch } from "antd";
 import React, { useMemo, useState } from "react";
 import { FaTrash, FaWallet } from "react-icons/fa";
+import { usePreferenceStore } from "../../store/preferenceStore";
 import {
 	useCreatePortfolio,
 	useDeletePortfolio,
@@ -15,6 +16,7 @@ import { Icon } from "../ui/Icon";
 import { VirtualTable } from "../VirtualTable";
 
 const PortfolioManager = () => {
+	const { currency } = usePreferenceStore();
 	const { data: portfolios, isLoading } = usePortfolios();
 	const createMutation = useCreatePortfolio();
 	const updateMutation = useUpdatePortfolio();
@@ -25,7 +27,7 @@ const PortfolioManager = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [activeTab, setActiveTab] = useState("1");
 	const [editingId, setEditingId] = useState<number | null>(null);
-	const [formData, setFormData] = useState({ name: "", description: "" });
+	const [formData, setFormData] = useState<{ name: string; description: string; is_testing: boolean }>({ name: "", description: "", is_testing: false });
 	const [transactionForm, setTransactionForm] = useState({
 		amount: 0,
 		type: "PAYIN",
@@ -39,10 +41,10 @@ const PortfolioManager = () => {
 	const handleOpen = (item?: any) => {
 		if (item) {
 			setEditingId(item.id);
-			setFormData({ name: item.name, description: item.description || "" });
+			setFormData({ name: item.name, description: item.description || "", is_testing: item.is_testing || false });
 		} else {
 			setEditingId(null);
-			setFormData({ name: "", description: "" });
+			setFormData({ name: "", description: "", is_testing: false });
 		}
 		setIsOpen(true);
 		setActiveTab("1");
@@ -97,6 +99,14 @@ const PortfolioManager = () => {
 		return [
 			columnHelper.accessor("id", { header: "ID", size: 60 }),
 			columnHelper.accessor("name", { header: "Name" }),
+			columnHelper.accessor("type", {
+				header: "Type",
+				cell: (info) => (
+					<Tag color={info.getValue() === "REAL" ? "blue" : "purple"}>
+						{info.getValue()}
+					</Tag>
+				)
+			}),
 			columnHelper.accessor("balance", {
 				header: "Balance",
 				cell: (info) => (
@@ -104,7 +114,7 @@ const PortfolioManager = () => {
 						className={`font-semibold ${info.getValue() >= 0 ? "text-green-500" : "text-red-500"
 							}`}
 					>
-						₹ {Number(info.getValue() || 0).toFixed(2).toLocaleString()}
+						{currency} {Number(info.getValue() || 0).toFixed(2).toLocaleString()}
 					</span>
 				),
 			}),
@@ -149,7 +159,7 @@ const PortfolioManager = () => {
 			title: "Amount",
 			dataIndex: "amount",
 			key: "amount",
-			render: (amount: number) => `₹ ${amount.toFixed(2).toLocaleString()}`,
+			render: (amount: number) => `${currency} ${amount.toFixed(2).toLocaleString()}`,
 		},
 		{
 			title: "Note",
@@ -219,6 +229,16 @@ const PortfolioManager = () => {
 											})
 										}
 									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium mb-1">Type</label>
+									<div className="flex items-center gap-2 mt-2">
+										<Switch
+											checked={formData.is_testing}
+											onChange={(checked) => setFormData({ ...formData, is_testing: checked })}
+										/>
+										<span>Testing / Backtesting</span>
+									</div>
 								</div>
 								<Flex justify="end" className="mt-2" gap={8}>
 									<Button variant="link" onClick={handleClose}>

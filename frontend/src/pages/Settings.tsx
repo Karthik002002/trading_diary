@@ -32,6 +32,7 @@ const Settings = () => {
 				<div className="p-2 max-w-full flex flex-col gap-2 max-h-[500px] overflow-y-auto">
 					<DashboardPreference />
 					<MaxLoss />
+					<CurrencyPreference />
 					<DataPreference />
 				</div>
 			),
@@ -234,6 +235,33 @@ const DataPreference = () => {
 					/>
 				</Form.Item>
 			</Form>
+		</Flex>
+	);
+};
+
+const CurrencyPreference = () => {
+	const { currency, setCurrency } = usePreferenceStore();
+
+	const currencies = [
+		{ label: "INR (₹)", value: "₹" },
+		{ label: "USD ($)", value: "$" },
+		{ label: "EUR (€)", value: "€" },
+		{ label: "GBP (£)", value: "£" },
+		{ label: "JPY (¥)", value: "¥" },
+	];
+
+	return (
+		<Flex vertical className="pb-4">
+			<h2 className="text-xl font-semibold mb-4">Currency Preference</h2>
+			<div className="flex items-center gap-4">
+				<span>Global Currency Symbol:</span>
+				<Select
+					options={currencies}
+					value={currency}
+					onChange={(value) => setCurrency(value)}
+					style={{ width: 120 }}
+				/>
+			</div>
 		</Flex>
 	);
 };

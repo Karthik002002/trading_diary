@@ -67,7 +67,7 @@ const CreateTradeModal: React.FC<Props> = ({
 	const [pendingSymbolFieldChange, setPendingSymbolFieldChange] = useState<
 		((id: number) => void) | null
 	>(null);
-	const { maxLoss } = usePreferenceStore();
+	const { maxLoss, currency } = usePreferenceStore();
 	const maxLossNumber = Number(maxLoss);
 	const {
 		control,
@@ -177,14 +177,14 @@ const CreateTradeModal: React.FC<Props> = ({
 					}
 
 					const riskPercent = (riskAmount / capital) * 100;
-			
+
 					if (riskAmount > allowedLoss) {
 						message.error({
 							key: "stop-loss-error",
 							duration: 5,
-							content: `Risk Amount (${riskAmount.toFixed(2)} / ${riskPercent.toFixed(
+							content: `Risk Amount (${currency}${riskAmount.toFixed(2)} / ${riskPercent.toFixed(
 								2,
-							)}%) exceeds max loss limit of ${maxLossNumber}% (Allowed: ${allowedLoss.toFixed(
+							)}%) exceeds max loss limit of ${maxLossNumber}% (Allowed: ${currency}${allowedLoss.toFixed(
 								2,
 							)}) for portfolio ${portfolio.name}`,
 						});
@@ -264,16 +264,16 @@ const CreateTradeModal: React.FC<Props> = ({
 				timeframe_photos:
 					tradeToEdit.timeframe_photos?.length > 0
 						? tradeToEdit.timeframe_photos.map((tp) => ({
-								type: tp.type,
-								photo: tp.photo,
-							}))
+							type: tp.type,
+							photo: tp.photo,
+						}))
 						: [{ type: "4h", photo: null }],
 				exits:
 					tradeToEdit.exits && tradeToEdit.exits?.length > 0
 						? tradeToEdit.exits.map((e: any) => ({
-								quantity: e.quantity,
-								price: e.price,
-							}))
+							quantity: e.quantity,
+							price: e.price,
+						}))
 						: [],
 				status: (tradeToEdit as any).status ?? "NIN",
 			});
@@ -413,7 +413,7 @@ const CreateTradeModal: React.FC<Props> = ({
 				: typeof option.label === "number"
 					? option.label.toString()
 					: // ReactNode case (e.g. <span>...</span>)
-						((option.label as any)?.props?.children?.toString?.() ?? "");
+					((option.label as any)?.props?.children?.toString?.() ?? "");
 
 		const valueText = option.value?.toString?.() ?? "";
 
@@ -691,6 +691,7 @@ const CreateTradeModal: React.FC<Props> = ({
 													{...field}
 													className="!w-full"
 													step={0.01}
+													prefix={currency}
 												/>
 											)}
 										/>
@@ -709,6 +710,7 @@ const CreateTradeModal: React.FC<Props> = ({
 													{...field}
 													className="!w-full"
 													step={0.01}
+													prefix={currency}
 												/>
 											)}
 										/>
@@ -726,6 +728,7 @@ const CreateTradeModal: React.FC<Props> = ({
 													{...field}
 													className="!w-full"
 													step={0.01}
+													prefix={currency}
 												/>
 											)}
 										/>
@@ -743,6 +746,7 @@ const CreateTradeModal: React.FC<Props> = ({
 													{...field}
 													className="!w-full"
 													step={0.01}
+													prefix={currency}
 												/>
 											)}
 										/>

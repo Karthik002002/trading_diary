@@ -4,6 +4,7 @@ export interface IPortfolio extends Document {
 	id: number;
 	name: string;
 	balance: number;
+	is_testing: boolean;
 }
 
 const PortfolioSchema: Schema = new Schema(
@@ -14,6 +15,11 @@ const PortfolioSchema: Schema = new Schema(
 			type: Number,
 			required: true,
 			default: 0
+		},
+		is_testing: {
+			type: Boolean,
+			required: true,
+			default: false
 		}
 	},
 	{

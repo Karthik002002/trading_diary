@@ -5,6 +5,8 @@ import type React from "react";
 import { useState } from "react";
 import { usePnlCalendar } from "../hooks/useTrades";
 import { Icon } from "./ui/Icon";
+import { usePreferenceStore } from "../store/preferenceStore";
+
 
 type CalendarProps = {};
 
@@ -13,11 +15,14 @@ interface PnlData {
 	pnl: number;
 	returns: number;
 	count: number;
+	trades_count: Record<string, number>;
+	portfolio_names: string[];
 }
 
 const PnlCalendar: React.FC<CalendarProps> = () => {
 	const [currentDate, setCurrentDate] = useState(new Date());
 	const search: any = useSearch({ from: "/" });
+	const { currency } = usePreferenceStore();
 	const year = currentDate.getFullYear();
 	const month = currentDate.getMonth();
 	const filters = {
@@ -78,6 +83,8 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
 			day,
 		).padStart(2, "0")}`;
 	};
+
+
 
 	return (
 		<div className="bg-surface rounded-2xl p-6 border border-gray-700 shadow-xl mt-2">
@@ -170,7 +177,7 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
 											<br />
 											Total trades: {count}
 											<br />
-											Total PnL: {data?.pnl.toFixed(2)}
+											Total PnL: {currency}{data?.pnl.toFixed(2)}
 										</div>
 									)
 								}
@@ -181,9 +188,8 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
 								>
 									<div className="text-right">
 										<span
-											className={`text-sm ${
-												hasTrade ? "text-white" : "text-gray-600"
-											}`}
+											className={`text-sm ${hasTrade ? "text-white" : "text-gray-600"
+												}`}
 										>
 											{day}
 										</span>
