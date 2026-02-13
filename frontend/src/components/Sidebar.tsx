@@ -150,6 +150,29 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 						</span>
 					)}
 				</Link>
+				<Link
+					to="/deep-dive"
+					className={`flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20`}
+					title={isCollapsed ? "Deep Dive" : ""}
+				>
+					<div className="min-w-5 flex justify-center">
+						<Icon
+							name={
+								activeLocation.pathname === "/deep-dive"
+									? "deep-analyse-active"
+									: "deep-analyse-default"
+							}
+							size={{ height: 20, width: 20 }}
+						/>
+					</div>
+					{!isCollapsed && (
+						<span
+							className={`font-medium ${activeLocation.pathname === "/deep-dive" ? "text-violet-800" : "text-white"}`}
+						>
+							Deep Dive
+						</span>
+					)}
+				</Link>
 				{getIsDhanEnabled?.enable && (
 					<Link
 						to="/dhan"

@@ -300,3 +300,12 @@ export const deleteGoal = async (id: number): Promise<void> => {
 	});
 	if (!response.ok) throw new Error("Failed to delete goal");
 };
+export const fetchDeepDiveAnalysis = async (filters: any[]): Promise<{ trades: any[], stats: any, equityCurve: any[] }> => {
+	const response = await fetch(`${BASE_URL}/trades/deep-dive`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ filters }),
+	});
+	if (!response.ok) throw new Error("Failed to fetch deep dive analysis");
+	return response.json();
+};

@@ -17,7 +17,6 @@ import {
 import { usePreferenceStore } from "../store/preferenceStore";
 import { useFilterStore } from "../store/useFilterStore";
 
-
 const Dashboard: React.FC = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [pastedFile, setPastedFile] = useState<File | null>(null);
@@ -292,9 +291,6 @@ const Dashboard: React.FC = () => {
 
 			<PnlCalendar />
 
-
-
-
 			<CreateTradeModal
 				isOpen={isOpen}
 				onClose={() => {
@@ -303,8 +299,6 @@ const Dashboard: React.FC = () => {
 				}}
 				initialFile={pastedFile}
 			/>
-
-
 		</div>
 	);
 };

@@ -659,4 +659,129 @@ router.delete("/:id", async (req: Request, res: Response) => {
 	}
 });
 
+// Deep Dive Analysis Endpoint
+router.post("/deep-dive", async (req: Request, res: Response) => {
+	try {
+		// filters is an array of { field: string, operator: string, value: any }
+		const { filters } = req.body;
+		const query: any = {};
+
+		if (filters && Array.isArray(filters)) {
+			filters.forEach((filter: any) => {
+				const { field, operator, value } = filter;
+
+				// Skip if value is empty/null (unless checking for existence)
+				if (value === undefined || value === null || value === "") return;
+
+				switch (operator) {
+					case "eq":
+						query[field] = value;
+						break;
+					case "neq":
+						query[field] = { $ne: value };
+						break;
+					case "gt":
+						query[field] = { $gt: Number(value) };
+						break;
+					case "gte":
+						query[field] = { $gte: Number(value) };
+						break;
+					case "lt":
+						query[field] = { $lt: Number(value) };
+						break;
+					case "lte":
+						query[field] = { $lte: Number(value) };
+						break;
+					case "contains":
+						// Case-insensitive regex for string fields
+						query[field] = { $regex: value, $options: "i" };
+						break;
+					case "in":
+						// Expecting value to be an array or comma-separated string
+						const inValues = Array.isArray(value) ? value : String(value).split(",");
+						// Handle ObjectId conversion for tags
+						if (field === "tags") {
+							query[field] = { $in: inValues.map((v: string) => new mongoose.Types.ObjectId(v)) };
+						} else {
+							query[field] = { $in: inValues };
+						}
+						break;
+					case "nin":
+						const ninValues = Array.isArray(value) ? value : String(value).split(",");
+						// Handle ObjectId conversion for tags
+						if (field === "tags") {
+							query[field] = { $nin: ninValues.map((v: string) => new mongoose.Types.ObjectId(v)) };
+						} else {
+							query[field] = { $nin: ninValues };
+						}
+						break;
+					// For boolean checks or specific existence
+					case "exists":
+						query[field] = { $exists: value === "true" || value === true };
+						break;
+				}
+			});
+		}
+
+		const trades = await Trade.find(query).sort({ trade_date: 1 }).lean();
+
+		// Calculate Stats
+		let totalPl = 0;
+		let totalRr = 0;
+		let winCount = 0;
+		let lossCount = 0;
+		let totalReturns = 0;
+		const equityCurve: { date: Date; value: number }[] = [];
+		let cumulativePl = 0;
+
+		trades.forEach((trade: any) => {
+			const pl = trade.pl || 0;
+			const rr = trade.actual_rr || 0;
+			const returns = trade.returns || 0;
+
+			totalPl += pl;
+			totalRr += rr;
+			totalReturns += returns;
+			cumulativePl += pl;
+
+			if (trade.outcome === "win") winCount++;
+			if (trade.outcome === "loss") lossCount++;
+
+			equityCurve.push({
+				date: trade.trade_date,
+				value: cumulativePl
+			});
+		});
+
+		const totalTrades = trades.length;
+		const winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0;
+		const avgRr = totalTrades > 0 ? totalRr / totalTrades : 0;
+
+		// Populate Tag/Strategy/Symbol Names (Assuming frontend has maps, but we can populate if needed)
+		// For performance, we'll just return IDs and let frontend map them, 
+		// OR we can do a quick populate if the volume isn't massive.
+		// Let's populate for "View" convenience
+		await Trade.populate(trades, [
+
+		]);
+
+
+		res.json({
+			trades,
+			stats: {
+				totalTrades,
+				winRate: Number(winRate.toFixed(2)),
+				totalPl: Number(totalPl.toFixed(2)),
+				avgRr: Number(avgRr.toFixed(2)),
+				totalReturns: Number(totalReturns.toFixed(2)),
+				winCount,
+				lossCount
+			},
+			equityCurve
+		});
+	} catch (error: any) {
+		res.status(500).json({ message: error.message });
+	}
+});
+
 export default router;

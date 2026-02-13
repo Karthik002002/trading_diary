@@ -9,6 +9,7 @@ import Settings from "./pages/Settings";
 import Charts from "./pages/Charts";
 import Integrations from "./pages/Integrations";
 import Goals from "./pages/Goals";
+import DeepDive from "./pages/DeepDive";
 
 const rootRoute = createRootRoute({
 	component: Layout,
@@ -80,6 +81,12 @@ const goalsRoute = createRoute({
 	path: "/goals",
 	component: Goals,
 });
+
+const deepDiveRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/deep-dive",
+	component: DeepDive,
+});
 const dhanRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/dhan",
@@ -123,6 +130,7 @@ const routeTree = rootRoute.addChildren([
 	chartsRoute,
 	integrationsRoute,
 	goalsRoute,
+	deepDiveRoute,
 	dhanRouteWithChildren,
 ]);
 
