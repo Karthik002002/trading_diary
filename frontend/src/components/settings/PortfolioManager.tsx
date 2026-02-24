@@ -2,7 +2,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { Button, Input, InputNumber, Modal, Select, Tabs, Tag, Table, message, Flex, Switch } from "antd";
 import React, { useMemo, useState } from "react";
 import { FaTrash, FaWallet } from "react-icons/fa";
-import { usePreferenceStore } from "../../store/preferenceStore";
+import { usePreferenceStore, type TPortfolioCurrency } from "../../store/preferenceStore";
 import {
 	useCreatePortfolio,
 	useDeletePortfolio,
@@ -16,7 +16,12 @@ import { Icon } from "../ui/Icon";
 import { VirtualTable } from "../VirtualTable";
 
 const PortfolioManager = () => {
-	const { currency } = usePreferenceStore();
+	const {
+		currency,
+		portfolioCurrencyById,
+		setPortfolioCurrency,
+		removePortfolioCurrency,
+	} = usePreferenceStore();
 	const { data: portfolios, isLoading } = usePortfolios();
 	const createMutation = useCreatePortfolio();
 	const updateMutation = useUpdatePortfolio();
@@ -27,7 +32,19 @@ const PortfolioManager = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [activeTab, setActiveTab] = useState("1");
 	const [editingId, setEditingId] = useState<number | null>(null);
-	const [formData, setFormData] = useState<{ name: string; description: string; is_testing: boolean }>({ name: "", description: "", is_testing: false });
+	const [formData, setFormData] = useState<{
+		name: string;
+		description: string;
+		is_testing: boolean;
+		market_type: "equity" | "forex";
+		currency: TPortfolioCurrency;
+	}>({
+		name: "",
+		description: "",
+		is_testing: false,
+		market_type: "equity",
+		currency: "INR",
+	});
 	const [transactionForm, setTransactionForm] = useState({
 		amount: 0,
 		type: "PAYIN",
@@ -41,10 +58,22 @@ const PortfolioManager = () => {
 	const handleOpen = (item?: any) => {
 		if (item) {
 			setEditingId(item.id);
-			setFormData({ name: item.name, description: item.description || "", is_testing: item.is_testing || false });
+			setFormData({
+				name: item.name,
+				description: item.description || "",
+				is_testing: item.is_testing || false,
+				market_type: item.market_type || "equity",
+				currency: portfolioCurrencyById[item.id] || item.currency || "INR",
+			});
 		} else {
 			setEditingId(null);
-			setFormData({ name: "", description: "", is_testing: false });
+			setFormData({
+				name: "",
+				description: "",
+				is_testing: false,
+				market_type: "equity",
+				currency: "INR",
+			});
 		}
 		setIsOpen(true);
 		setActiveTab("1");
@@ -56,13 +85,22 @@ const PortfolioManager = () => {
 	};
 
 	const handleSubmit = () => {
+		const { currency: selectedCurrency, ...apiPayload } = formData;
 		if (editingId) {
+			setPortfolioCurrency(editingId, selectedCurrency);
 			updateMutation.mutate(
-				{ id: editingId, data: formData },
+				{ id: editingId, data: apiPayload },
 				{ onSuccess: handleClose },
 			);
 		} else {
-			createMutation.mutate(formData, { onSuccess: handleClose });
+			createMutation.mutate(apiPayload, {
+				onSuccess: (created: any) => {
+					if (typeof created?.id === "number") {
+						setPortfolioCurrency(created.id, selectedCurrency);
+					}
+					handleClose();
+				},
+			});
 		}
 	};
 
@@ -90,7 +128,9 @@ const PortfolioManager = () => {
 
 	const handleDelete = (id: number) => {
 		if (confirm("Are you sure you want to delete this portfolio?")) {
-			deleteMutation.mutate(id);
+			deleteMutation.mutate(id, {
+				onSuccess: () => removePortfolioCurrency(id),
+			});
 		}
 	};
 
@@ -99,6 +139,17 @@ const PortfolioManager = () => {
 		return [
 			columnHelper.accessor("id", { header: "ID", size: 60 }),
 			columnHelper.accessor("name", { header: "Name" }),
+			columnHelper.accessor("market_type", {
+				header: "Market",
+				cell: (info) => info.getValue()?.toUpperCase?.() || "EQUITY",
+				size: 90,
+			}),
+			columnHelper.accessor("currency", {
+				header: "Currency",
+				cell: (info) =>
+					portfolioCurrencyById[info.row.original.id] || info.getValue() || "INR",
+				size: 90,
+			}),
 			columnHelper.accessor("type", {
 				header: "Type",
 				cell: (info) => (
@@ -114,7 +165,7 @@ const PortfolioManager = () => {
 						className={`font-semibold ${info.getValue() >= 0 ? "text-green-500" : "text-red-500"
 							}`}
 					>
-						{currency} {Number(info.getValue() || 0).toFixed(2).toLocaleString()}
+						{portfolioCurrencyById[info.row.original.id] || info.row.original.currency || currency} {Number(info.getValue() || 0).toFixed(2).toLocaleString()}
 					</span>
 				),
 			}),
@@ -144,7 +195,7 @@ const PortfolioManager = () => {
 				size: 100,
 			}),
 		];
-	}, []);
+	}, [currency, portfolioCurrencyById]);
 
 	const transactionColumns = [
 		{
@@ -228,6 +279,45 @@ const PortfolioManager = () => {
 												description: e.currentTarget.value,
 											})
 										}
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium mb-1">
+										Market Type
+									</label>
+									<Select
+										value={formData.market_type}
+										onChange={(value) =>
+											setFormData({
+												...formData,
+												market_type: value as "equity" | "forex",
+											})
+										}
+										options={[
+											{ label: "Equity", value: "equity" },
+											{ label: "Forex", value: "forex" },
+										]}
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium mb-1">
+										Currency
+									</label>
+									<Select
+										value={formData.currency}
+										onChange={(value) =>
+											setFormData({
+												...formData,
+												currency: value as TPortfolioCurrency,
+											})
+										}
+										options={[
+											{ label: "INR", value: "INR" },
+											{ label: "USD", value: "USD" },
+											{ label: "EUR", value: "EUR" },
+											{ label: "GBP", value: "GBP" },
+											{ label: "JPY", value: "JPY" },
+										]}
 									/>
 								</div>
 								<div>

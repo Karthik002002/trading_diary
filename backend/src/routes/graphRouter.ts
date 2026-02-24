@@ -1,11 +1,12 @@
-import express from "express";
+import express, { type Request, type Response } from "express";
+import ForexTrade from "../models/forexTrade";
 import Trade from "../models/trade";
 
 const graphRouter = express.Router();
 
 
 const buildFilterQuery = (filters: any) => {
-    const { strategy_id, outcome, search, symbol, portfolio_id, status, tags, from, to } =
+    const { strategy_id, outcome, search, symbol, portfolio_id, status, tags, from, to, trade_type } =
         filters;
 
     const mongoQuery: any = {};
@@ -24,6 +25,9 @@ const buildFilterQuery = (filters: any) => {
     }
     if (status) {
         mongoQuery.status = status;
+    }
+    if (trade_type) {
+        mongoQuery.trade_type = trade_type;
     }
     if (tags) {
         // If tags are provided as comma separated string or array
@@ -55,13 +59,13 @@ const buildFilterQuery = (filters: any) => {
 }
 
 
-graphRouter.post("/timeseries", async (req, res) => {
+graphRouter.post("/timeseries", async (req: Request, res: Response) => {
     try {
         const { filters } = req.body ?? {};
         const query = filters ? buildFilterQuery(filters) : {};
+        const Model = filters?.trade_type === "forex" ? ForexTrade : Trade;
 
-        // want timeseries data of the trades 
-        const trades = await Trade.aggregate([
+        const trades = await Model.aggregate([
             { $match: query },
             {
                 $facet: {
@@ -90,12 +94,13 @@ graphRouter.post("/timeseries", async (req, res) => {
 })
 
 
-graphRouter.post("/heatmap", async (req, res) => {
+graphRouter.post("/heatmap", async (req: Request, res: Response) => {
     try {
         const { filters } = req.body ?? {};
         const query = filters ? buildFilterQuery(filters) : {};
+        const Model = filters?.trade_type === "forex" ? ForexTrade : Trade;
 
-        const heatmapData = await Trade.aggregate([
+        const heatmapData = await Model.aggregate([
             { $match: query },
             {
                 $group: {
@@ -120,12 +125,13 @@ graphRouter.post("/heatmap", async (req, res) => {
     }
 });
 
-graphRouter.post("/treemap", async (req, res) => {
+graphRouter.post("/treemap", async (req: Request, res: Response) => {
     try {
         const { filters } = req.body ?? {};
         const query = filters ? buildFilterQuery(filters) : {};
+        const Model = filters?.trade_type === "forex" ? ForexTrade : Trade;
 
-        const treemapData = await Trade.aggregate([
+        const treemapData = await Model.aggregate([
             { $match: query },
             { $unwind: "$emotional_state" },
             {
@@ -163,26 +169,24 @@ graphRouter.post("/treemap", async (req, res) => {
     }
 });
 
-graphRouter.post("/winlosspiechart", async (req, res) => {
+graphRouter.post("/winlosspiechart", async (req: Request, res: Response) => {
     try {
         const { filters } = req.body ?? {};
         const query = filters ? buildFilterQuery(filters) : {};
+        const Model = filters?.trade_type === "forex" ? ForexTrade : Trade;
 
-        // count not coming on response
-        const winLossData = await Trade.aggregate([
+        const winLossData = await Model.aggregate([
             { $match: query },
             {
                 $group: {
                     _id: "$outcome",
                     count: { $sum: 1 },
-                    name: { $first: "$_id" },
-                    value: { $first: "count" },
                 },
             },
             {
                 $project: {
                     name: "$_id",
-                    value: 1,
+                    value: "$count",
                     _id: 0,
                 },
             },
@@ -195,12 +199,13 @@ graphRouter.post("/winlosspiechart", async (req, res) => {
     }
 });
 
-graphRouter.post("/outcome-tag-combination", async (req, res) => {
+graphRouter.post("/outcome-tag-combination", async (req: Request, res: Response) => {
     try {
         const { filters } = req.body ?? {};
         const query = filters ? buildFilterQuery(filters) : {};
+        const Model = filters?.trade_type === "forex" ? ForexTrade : Trade;
 
-        const outcomeTagCombination = await Trade.aggregate([
+        const outcomeTagCombination = await Model.aggregate([
             { $match: query },
             {
                 $project: {
@@ -232,7 +237,6 @@ graphRouter.post("/outcome-tag-combination", async (req, res) => {
             },
             { $sort: { count: -1 } }
         ])
-
 
         res.status(200).json(outcomeTagCombination);
     } catch (error) {

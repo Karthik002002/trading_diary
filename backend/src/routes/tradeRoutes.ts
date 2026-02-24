@@ -2,6 +2,8 @@ import express, { type Request, type Response } from "express";
 import { validateRequest } from "../middleware/validateRequest";
 import Tag from "../models/tag";
 import Trade from "../models/trade";
+import Strategy from "../models/strategy";
+import Symbol from "../models/symbol";
 import {
 	createTradeValidator,
 	updateTradeValidator,
@@ -11,6 +13,17 @@ import mongoose from "mongoose";
 import { upload } from "../middleware/uploadMiddleware";
 
 const router = express.Router();
+
+const isCompatibleMarketType = (
+	entityMarketType: string | undefined,
+	expected: "equity" | "forex",
+) => {
+	if (!entityMarketType) {
+		// Legacy records without market_type are treated as equity.
+		return expected === "equity";
+	}
+	return entityMarketType === expected;
+};
 
 const parseTradeBody = (req: Request, res: Response, next: express.NextFunction) => {
 	if (req.body.rule_violations && typeof req.body.rule_violations === "string") {
@@ -59,7 +72,7 @@ const parseTradeBody = (req: Request, res: Response, next: express.NextFunction)
 	next();
 };
 const buildTradeQuery = (query: any) => {
-	const { strategy_id, outcome, search, symbol, portfolio_id, status, tags, from, to } =
+	const { strategy_id, outcome, search, symbol, portfolio_id, status, tags, from, to, trade_type } =
 		query;
 	const mongoQuery: any = {};
 
@@ -78,6 +91,9 @@ const buildTradeQuery = (query: any) => {
 	if (status) {
 		mongoQuery.status = status;
 	}
+	if (trade_type) {
+		mongoQuery.trade_type = trade_type;
+	}
 	if (tags) {
 		// If tags are provided as comma separated string or array
 		const tagIds = Array.isArray(tags) ? tags : String(tags).split(",");
@@ -95,6 +111,50 @@ const buildTradeQuery = (query: any) => {
 		];
 	}
 	return mongoQuery;
+};
+
+const validateTradeResourceMarketType = async (
+	body: any,
+	expectedMarketType: "equity" | "forex",
+) => {
+	const strategy = await Strategy.findOne({ id: Number(body.strategy_id) }).lean();
+	if (!strategy) {
+		return { valid: false, message: "Invalid strategy_id" };
+	}
+	if (!isCompatibleMarketType(strategy.market_type, expectedMarketType)) {
+		return {
+			valid: false,
+			message: `Strategy ${strategy.id} is not configured for ${expectedMarketType} trades`,
+		};
+	}
+
+	const symbol = await Symbol.findOne({ id: Number(body.symbol_id) }).lean();
+	if (!symbol) {
+		return { valid: false, message: "Invalid symbol_id" };
+	}
+	if (!isCompatibleMarketType(symbol.market_type, expectedMarketType)) {
+		return {
+			valid: false,
+			message: `Symbol ${symbol.id} is not configured for ${expectedMarketType} trades`,
+		};
+	}
+
+	if (body.portfolio_id !== null && body.portfolio_id !== undefined) {
+		const portfolio = await Portfolio.findOne({
+			id: Number(body.portfolio_id),
+		}).lean();
+		if (!portfolio) {
+			return { valid: false, message: "Invalid portfolio_id" };
+		}
+		if (!isCompatibleMarketType(portfolio.market_type, expectedMarketType)) {
+			return {
+				valid: false,
+				message: `Portfolio ${portfolio.id} is not configured for ${expectedMarketType} trades`,
+			};
+		}
+	}
+
+	return { valid: true };
 };
 
 // Get performance statistics
@@ -421,6 +481,14 @@ router.post(
 	validateRequest,
 	async (req: Request, res: Response) => {
 		try {
+			const marketValidation = await validateTradeResourceMarketType(
+				req.body,
+				"equity",
+			);
+			if (!marketValidation.valid) {
+				return res.status(400).json({ message: marketValidation.message });
+			}
+
 			if (req.files && Array.isArray(req.files)) {
 				const files = req.files as Express.Multer.File[];
 
@@ -559,6 +627,15 @@ router.put(
 		try {
 			const trade = await Trade.findById(req.params.id);
 			if (!trade) return res.status(404).json({ message: "Trade not found" });
+
+			const mergedForValidation = { ...trade.toObject(), ...req.body };
+			const marketValidation = await validateTradeResourceMarketType(
+				mergedForValidation,
+				"equity",
+			);
+			if (!marketValidation.valid) {
+				return res.status(400).json({ message: marketValidation.message });
+			}
 
 			if (req.files && Array.isArray(req.files)) {
 				const files = req.files as Express.Multer.File[];

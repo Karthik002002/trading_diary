@@ -2,6 +2,10 @@ import { body } from "express-validator";
 
 export const createStrategyValidator = [
 	body("name").notEmpty().withMessage("Name is required"),
+	body("market_type")
+		.optional()
+		.isIn(["equity", "forex"])
+		.withMessage("Market type must be either equity or forex"),
 	body("description")
 		.optional({ nullable: true })
 		.isString()
@@ -22,6 +26,10 @@ export const createStrategyValidator = [
 
 export const updateStrategyValidator = [
 	body("name").optional().notEmpty().withMessage("Name cannot be empty"),
+	body("market_type")
+		.optional()
+		.isIn(["equity", "forex"])
+		.withMessage("Market type must be either equity or forex"),
 	body("description")
 		.optional({ nullable: true })
 		.isString()

@@ -8,10 +8,25 @@ import {
 
 const router = express.Router();
 
+const buildMarketTypeFilter = (marketType?: string) => {
+	if (marketType === "forex") {
+		return { market_type: "forex" };
+	}
+	if (marketType === "equity") {
+		return {
+			$or: [{ market_type: "equity" }, { market_type: { $exists: false } }],
+		};
+	}
+	return {};
+};
+
 // Get all symbols
 router.get("/", async (req: Request, res: Response) => {
 	try {
-		const symbols = await Symbol.find().sort({ id: 1 });
+		const marketType = req.query.market_type as string | undefined;
+		const symbols = await Symbol.find(buildMarketTypeFilter(marketType)).sort({
+			id: 1,
+		});
 		res.json(symbols);
 	} catch (error: any) {
 		res.status(500).json({ message: error.message });

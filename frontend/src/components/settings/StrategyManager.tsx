@@ -1,5 +1,5 @@
 import { createColumnHelper } from "@tanstack/react-table";
-import { Button, Input, InputNumber, Modal } from "antd";
+import { Button, Input, InputNumber, Modal, Select } from "antd";
 import { useMemo, useState } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import {
@@ -24,6 +24,7 @@ const StrategyManager = () => {
 	const [formData, setFormData] = useState({
 		name: "",
 		description: "",
+		market_type: "equity" as "equity" | "forex",
 		monthlyLossLimit: null as number | null,
 		weeklyLossLimit: null as number | null,
 		consecutiveLossLimit: null as number | null,
@@ -35,6 +36,7 @@ const StrategyManager = () => {
 			setFormData({
 				name: strategy.name,
 				description: strategy.description || "",
+				market_type: strategy.market_type || "equity",
 				monthlyLossLimit: strategy.monthlyLossLimit || null,
 				weeklyLossLimit: strategy.weeklyLossLimit || null,
 				consecutiveLossLimit: strategy.consecutiveLossLimit || null,
@@ -44,6 +46,7 @@ const StrategyManager = () => {
 			setFormData({
 				name: "",
 				description: "",
+				market_type: "equity",
 				monthlyLossLimit: null,
 				weeklyLossLimit: null,
 				consecutiveLossLimit: null,
@@ -76,6 +79,11 @@ const StrategyManager = () => {
 		return [
 			columnHelper.accessor("id", { header: "ID", size: 60 }),
 			columnHelper.accessor("name", { header: "Name" }),
+			columnHelper.accessor("market_type", {
+				header: "Market",
+				cell: (info) => info.getValue()?.toUpperCase?.() || "EQUITY",
+				size: 90,
+			}),
 			columnHelper.accessor("weeklyLossLimit", {
 				header: "W. Limit",
 				cell: (info) =>
@@ -186,6 +194,22 @@ const StrategyManager = () => {
 							onChange={(e) =>
 								setFormData({ ...formData, name: e.currentTarget.value })
 							}
+						/>
+					</div>
+					<div>
+						<label className="block text-sm font-medium mb-1">Market Type</label>
+						<Select
+							value={formData.market_type}
+							onChange={(value) =>
+								setFormData({
+									...formData,
+									market_type: value as "equity" | "forex",
+								})
+							}
+							options={[
+								{ label: "Equity", value: "equity" },
+								{ label: "Forex", value: "forex" },
+							]}
 						/>
 					</div>
 

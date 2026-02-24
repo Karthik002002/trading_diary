@@ -1,5 +1,6 @@
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import type {
+	MarketType,
 	PerformanceMetric,
 	PnlCalendarDay,
 	Strategy,
@@ -31,16 +32,11 @@ export const BACKEND_URL = "http://localhost:5000";
 export const fetchTrades = async (
 	page = 1,
 	limit = 20,
-	filters?: {
-		strategy_id?: string;
-		outcome?: string;
-		search?: string;
-		symbol?: string;
-		portfolio_id?: string;
-		status?: string;
-		tags?: string[];
-	},
+	filters?: TFilters,
 ): Promise<TradeResponse> => {
+	const isForex = filters?.trade_type === "forex";
+	const endpoint = isForex ? "forex/trades" : "trades";
+
 	const params = new URLSearchParams({
 		page: page.toString(),
 		limit: limit.toString(),
@@ -56,7 +52,7 @@ export const fetchTrades = async (
 	if (filters?.tags && filters.tags.length > 0)
 		params.append("tags", filters.tags.join(","));
 
-	const response = await fetch(`${BASE_URL}/trades?${params.toString()}`);
+	const response = await fetch(`${BASE_URL}/${endpoint}?${params.toString()}`);
 	if (!response.ok) {
 		throw new Error("Network response was not ok");
 	}
@@ -66,8 +62,12 @@ export const fetchTrades = async (
 export const updateTrade = async (
 	id: string,
 	tradeData: FormData,
+	tradeType: string,
 ): Promise<any> => {
-	const response = await fetch(`${BASE_URL}/trades/${id}`, {
+	const isForex = tradeType === "forex";
+	const endpoint = isForex ? "forex/trades" : "trades";
+
+	const response = await fetch(`${BASE_URL}/${endpoint}/${id}`, {
 		method: "PUT",
 		body: tradeData,
 	});
@@ -78,16 +78,28 @@ export const updateTrade = async (
 	return response.json();
 };
 
-export const deleteTrade = async (id: string): Promise<any> => {
-	const response = await fetch(`${BASE_URL}/trades/${id}`, {
+export const deleteTrade = async (
+	id: string,
+	tradeType?: string,
+): Promise<any> => {
+	const isForex = tradeType === "forex";
+	const endpoint = isForex ? "forex/trades" : "trades";
+
+	const response = await fetch(`${BASE_URL}/${endpoint}/${id}`, {
 		method: "DELETE",
 	});
 	if (!response.ok) throw new Error("Failed to delete trade");
 	return response.json();
 };
 
-export const createTrade = async (tradeData: FormData): Promise<any> => {
-	const response = await fetch(`${BASE_URL}/trades`, {
+export const createTrade = async (
+	tradeData: FormData,
+	tradeType?: string,
+): Promise<any> => {
+	const isForex = tradeType === "forex";
+	const endpoint = isForex ? "forex/trades" : "trades";
+
+	const response = await fetch(`${BASE_URL}/${endpoint}`, {
 		method: "POST",
 		body: tradeData,
 	});
@@ -100,6 +112,16 @@ export const createTrade = async (tradeData: FormData): Promise<any> => {
 
 export const fetchStrategies = async (): Promise<Strategy[]> => {
 	const response = await fetch(`${BASE_URL}/strategies`);
+	if (!response.ok) throw new Error("Failed to fetch strategies");
+	return response.json();
+};
+
+export const fetchStrategiesByMarket = async (
+	marketType?: MarketType,
+): Promise<Strategy[]> => {
+	const params = new URLSearchParams();
+	if (marketType) params.append("market_type", marketType);
+	const response = await fetch(`${BASE_URL}/strategies?${params.toString()}`);
 	if (!response.ok) throw new Error("Failed to fetch strategies");
 	return response.json();
 };
@@ -133,8 +155,10 @@ export const fetchTags = async (
 	return response.json();
 };
 
-export const fetchSymbols = async (): Promise<TSymbol[]> => {
-	const response = await fetch(`${BASE_URL}/symbols`);
+export const fetchSymbols = async (marketType?: MarketType): Promise<TSymbol[]> => {
+	const params = new URLSearchParams();
+	if (marketType) params.append("market_type", marketType);
+	const response = await fetch(`${BASE_URL}/symbols?${params.toString()}`);
 	if (!response.ok) throw new Error("Failed to fetch symbols");
 	return response.json();
 };
@@ -144,6 +168,9 @@ export const fetchPnlCalendar = async (
 	year: number,
 	filters?: TFilters,
 ): Promise<PnlCalendarDay[]> => {
+	const isForex = filters?.trade_type === "forex";
+	const endpoint = isForex ? "forex/trades/pnl/calendar" : "trades/pnl/calendar";
+
 	const params = new URLSearchParams({
 		month: month.toString(),
 		year: year.toString(),
@@ -157,7 +184,8 @@ export const fetchPnlCalendar = async (
 	if (filters?.status) params.append("status", filters.status);
 	if (filters?.tags && filters.tags.length > 0)
 		params.append("tags", filters.tags.join(","));
-	const response = await fetch(`${BASE_URL}/trades/pnl/calendar?${params}`);
+
+	const response = await fetch(`${BASE_URL}/${endpoint}?${params}`);
 	if (!response.ok) {
 		throw new Error("Failed to fetch PnL calendar data");
 	}
@@ -165,12 +193,25 @@ export const fetchPnlCalendar = async (
 };
 
 export const fetchPerformanceMetric = async (
-	filters: Record<string, string>,
+	filters: TFilters,
 ): Promise<PerformanceMetric> => {
+	const isForex = filters?.trade_type === "forex";
+	const endpoint = isForex ? "forex/trades/stats/performance-metric" : "trades/stats/performance-metric";
+
+	const params = new URLSearchParams();
+	if (filters.strategy_id) params.append("strategy_id", filters.strategy_id);
+	if (filters.outcome) params.append("outcome", filters.outcome);
+	if (filters.search) params.append("search", filters.search);
+	if (filters.symbol) params.append("symbol", filters.symbol);
+	if (filters.portfolio_id) params.append("portfolio_id", filters.portfolio_id);
+	if (filters.status) params.append("status", filters.status);
+	if (filters.from) params.append("from", filters.from);
+	if (filters.to) params.append("to", filters.to);
+	if (filters.tags && filters.tags.length > 0)
+		params.append("tags", filters.tags.join(","));
+
 	const response = await fetch(
-		`${BASE_URL}/trades/stats/performance-metric?${new URLSearchParams(
-			Object.entries(filters).filter(([_, value]) => value !== undefined),
-		).toString()}`,
+		`${BASE_URL}/${endpoint}?${params.toString()}`,
 	);
 	if (!response.ok) throw new Error("Failed to fetch performance metric data");
 	return response.json();
@@ -300,8 +341,14 @@ export const deleteGoal = async (id: number): Promise<void> => {
 	});
 	if (!response.ok) throw new Error("Failed to delete goal");
 };
-export const fetchDeepDiveAnalysis = async (filters: any[]): Promise<{ trades: any[], stats: any, equityCurve: any[] }> => {
-	const response = await fetch(`${BASE_URL}/trades/deep-dive`, {
+export const fetchDeepDiveAnalysis = async (
+	filters: any[],
+	tradeType?: string,
+): Promise<{ trades: any[]; stats: any; equityCurve: any[] }> => {
+	const isForex = tradeType === "forex";
+	const endpoint = isForex ? "forex/trades/deep-dive" : "trades/deep-dive";
+
+	const response = await fetch(`${BASE_URL}/${endpoint}`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ filters }),

@@ -98,7 +98,15 @@ export const createTradeValidator = [
 	body("exits.*.price")
 		.optional()
 		.isNumeric()
-		.withMessage("Exit price must be a number")
+		.withMessage("Exit price must be a number"),
+	body("trade_type")
+		.optional()
+		.isIn(["equity", "forex"])
+		.withMessage("Trade type must be either equity or forex"),
+	body("contract_size")
+		.optional()
+		.isNumeric()
+		.withMessage("Contract size must be a number")
 ];
 
 export const updateTradeValidator = [
@@ -216,4 +224,12 @@ export const updateTradeValidator = [
 		.optional()
 		.isNumeric()
 		.withMessage("Exit price must be a number"),
+	body("trade_type")
+		.optional()
+		.isIn(["equity", "forex"])
+		.withMessage("Trade type must be either equity or forex"),
+	body("contract_size")
+		.optional()
+		.isNumeric()
+		.withMessage("Contract size must be a number")
 ];

@@ -66,6 +66,27 @@ export const tradeSchema = z.object({
 			}),
 		)
 		.optional(),
+	trade_type: z.enum(["equity", "forex"]).optional().default("equity"),
+}).superRefine((data, ctx) => {
+	if (data.trade_type !== "forex") return;
+
+	if (data.quantity < 0.01 || data.quantity > 10) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["quantity"],
+			message: "Forex lot size must be between 0.01 and 10",
+		});
+	}
+
+	data.exits?.forEach((exit, index) => {
+		if (exit.quantity < 0.01 || exit.quantity > 10) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["exits", index, "quantity"],
+				message: "Forex exit lot size must be between 0.01 and 10",
+			});
+		}
+	});
 });
 
 export type TradeFormValues = z.infer<typeof tradeSchema>;

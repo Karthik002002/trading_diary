@@ -1,5 +1,5 @@
 import { createColumnHelper } from "@tanstack/react-table";
-import { Button, Input, Modal } from "antd";
+import { Button, Input, Modal, Select } from "antd";
 import { useMemo, useState } from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
 import {
@@ -19,15 +19,23 @@ const SymbolManager = () => {
 
 	const [isOpen, setIsOpen] = useState(false);
 	const [editingId, setEditingId] = useState<number | null>(null);
-	const [formData, setFormData] = useState({ symbol: "", name: "" });
+	const [formData, setFormData] = useState({
+		symbol: "",
+		name: "",
+		market_type: "equity" as "equity" | "forex",
+	});
 
 	const handleOpen = (item?: any) => {
 		if (item) {
 			setEditingId(item.id);
-			setFormData({ symbol: item.symbol, name: item.name });
+			setFormData({
+				symbol: item.symbol,
+				name: item.name,
+				market_type: item.market_type || "equity",
+			});
 		} else {
 			setEditingId(null);
-			setFormData({ symbol: "", name: "" });
+			setFormData({ symbol: "", name: "", market_type: "equity" });
 		}
 		setIsOpen(true);
 	};
@@ -57,6 +65,11 @@ const SymbolManager = () => {
 			columnHelper.accessor("id", { header: "ID", size: 60 }),
 			columnHelper.accessor("symbol", { header: "Symbol" }),
 			columnHelper.accessor("name", { header: "Name" }),
+			columnHelper.accessor("market_type", {
+				header: "Market",
+				cell: (info) => info.getValue()?.toUpperCase?.() || "EQUITY",
+				size: 90,
+			}),
 			columnHelper.display({
 				id: "actions",
 				header: "Actions",
@@ -129,6 +142,20 @@ const SymbolManager = () => {
 					onChange={(e) =>
 						setFormData({ ...formData, name: e.currentTarget.value })
 					}
+				/>
+				<Select
+					value={formData.market_type}
+					onChange={(value) =>
+						setFormData({
+							...formData,
+							market_type: value as "equity" | "forex",
+						})
+					}
+					options={[
+						{ label: "Equity", value: "equity" },
+						{ label: "Forex", value: "forex" },
+					]}
+					style={{ marginTop: "10px" }}
 				/>
 				{/* </FormControl> */}
 				{/* </ModalBody>

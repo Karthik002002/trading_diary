@@ -3,164 +3,182 @@ import dayjs from "dayjs";
 import { validateRequest } from "../middleware/validateRequest";
 import Strategy from "../models/strategy";
 import Trade from "../models/trade";
+import ForexTrade from "../models/forexTrade";
 import Portfolio from "../models/portfolio";
 import {
-	createStrategyValidator,
-	updateStrategyValidator,
+  createStrategyValidator,
+  updateStrategyValidator,
 } from "../validators/strategyValidators";
 
 const router = express.Router();
 
+const buildMarketTypeFilter = (marketType?: string) => {
+  if (marketType === "forex") {
+    return { market_type: "forex" };
+  }
+  if (marketType === "equity") {
+    return {
+      $or: [{ market_type: "equity" }, { market_type: { $exists: false } }],
+    };
+  }
+  return {};
+};
+
 // Get strategy limits and current losses
 router.get("/status/limits", async (req: Request, res: Response) => {
-	try {
-		const strategies = await Strategy.find();
-		const portfolios = await Portfolio.find();
-		const now = dayjs();
-		const startOfWeek = now.startOf("week").toDate();
-		const startOfMonth = now.startOf("month").toDate();
+  try {
+    const marketType = req.query.market_type as string | undefined;
+    const entityFilter = buildMarketTypeFilter(marketType);
+    const strategies = await Strategy.find(entityFilter);
+    const portfolios = await Portfolio.find(entityFilter);
+    const tradeModel: any = marketType === "forex" ? ForexTrade : Trade;
+    const now = dayjs();
+    const startOfWeek = now.startOf("week").toDate();
+    const startOfMonth = now.startOf("month").toDate();
 
-		const status: any[] = [];
+    const status: any[] = [];
 
-		for (const strategy of strategies) {
-			for (const portfolio of portfolios) {
-				const weeklyTrades = await Trade.find({
-					strategy_id: strategy.id,
-					portfolio_id: portfolio.id,
-					trade_date: { $gte: startOfWeek },
-				});
-				const monthlyTrades = await Trade.find({
-					strategy_id: strategy.id,
-					portfolio_id: portfolio.id,
-					trade_date: { $gte: startOfMonth },
-				});
+    for (const strategy of strategies) {
+      for (const portfolio of portfolios) {
+        const weeklyTrades = await tradeModel.find({
+          strategy_id: strategy.id,
+          portfolio_id: portfolio.id,
+          trade_date: { $gte: startOfWeek },
+        });
+        const monthlyTrades = await tradeModel.find({
+          strategy_id: strategy.id,
+          portfolio_id: portfolio.id,
+          trade_date: { $gte: startOfMonth },
+        });
 
-				const weeklyPL = weeklyTrades.reduce(
-					(sum, t) => sum + (t.pl || 0),
-					0,
-				);
-				const monthlyPL = monthlyTrades.reduce(
-					(sum, t) => sum + (t.pl || 0),
-					0,
-				);
+        const weeklyPL = weeklyTrades.reduce(
+          (sum: number, t: any) => sum + (t.pl || 0),
+          0,
+        );
+        const monthlyPL = monthlyTrades.reduce(
+          (sum: number, t: any) => sum + (t.pl || 0),
+          0,
+        );
 
-				const currentWeeklyLoss =
-					weeklyPL < 0 ? Number(Math.abs(weeklyPL).toFixed(2)) : 0;
-				const currentMonthlyLoss =
-					monthlyPL < 0 ? Number(Math.abs(monthlyPL).toFixed(2)) : 0;
+        const currentWeeklyLoss =
+          weeklyPL < 0 ? Number(Math.abs(weeklyPL).toFixed(2)) : 0;
+        const currentMonthlyLoss =
+          monthlyPL < 0 ? Number(Math.abs(monthlyPL).toFixed(2)) : 0;
 
-				// Calculate consecutive losses
-				const recentTrades = await Trade.find({
-					strategy_id: strategy.id,
-					portfolio_id: portfolio.id
-				})
-					.sort({ trade_date: -1 })
-					.limit(20); // Check last 20 trades for streak
+        // Calculate consecutive losses
+        const recentTrades = await tradeModel
+          .find({
+            strategy_id: strategy.id,
+            portfolio_id: portfolio.id,
+          })
+          .sort({ trade_date: -1 })
+          .limit(20); // Check last 20 trades for streak
 
-				let currentConsecutiveLosses = 0;
-				for (const trade of recentTrades) {
-					if (trade.outcome === "loss") {
-						currentConsecutiveLosses++;
-					} else if (trade.outcome === "win") {
-						break; // Streak broken by a win
-					}
-				}
+        let currentConsecutiveLosses = 0;
+        for (const trade of recentTrades) {
+          if (trade.outcome === "loss") {
+            currentConsecutiveLosses++;
+          } else if (trade.outcome === "win") {
+            break; // Streak broken by a win
+          }
+        }
 
-				// Only add to status if there's relevant data or limits defined
-				// Logic: If limits are set, we want to see the status even if 0. 
-				// If no limits set, and no losses, maybe skip?
-				// For now, let's include all to ensure visibility as per request "consider all available portfolios"
-				status.push({
-					strategyId: strategy.id,
-					strategyName: strategy.name,
-					portfolioId: portfolio.id,
-					portfolioName: portfolio.name,
-					weeklyLossLimit: strategy.weeklyLossLimit,
-					monthlyLossLimit: strategy.monthlyLossLimit,
-					consecutiveLossLimit: strategy.consecutiveLossLimit,
-					currentWeeklyLoss,
-					currentMonthlyLoss,
-					currentConsecutiveLosses,
-				});
-			}
-		}
+        // Only add to status if there's relevant data or limits defined
+        // Logic: If limits are set, we want to see the status even if 0.
+        // If no limits set, and no losses, maybe skip?
+        // For now, let's include all to ensure visibility as per request "consider all available portfolios"
+        status.push({
+          strategyId: strategy.id,
+          strategyName: strategy.name,
+          portfolioId: portfolio.id,
+          portfolioName: portfolio.name,
+          weeklyLossLimit: strategy.weeklyLossLimit,
+          monthlyLossLimit: strategy.monthlyLossLimit,
+          consecutiveLossLimit: strategy.consecutiveLossLimit,
+          currentWeeklyLoss,
+          currentMonthlyLoss,
+          currentConsecutiveLosses,
+        });
+      }
+    }
 
-		res.json(status);
-	} catch (error: any) {
-		res.status(500).json({ message: error.message });
-	}
+    res.json(status);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // Create new strategy
 router.post(
-	"/",
-	createStrategyValidator,
-	validateRequest,
-	async (req: Request, res: Response) => {
-		try {
-			const strategy = new Strategy(req.body);
-			const savedStrategy = await strategy.save();
-			res.status(201).json(savedStrategy);
-		} catch (error: any) {
-			res.status(400).json({ message: error.message });
-		}
-	},
+  "/",
+  createStrategyValidator,
+  validateRequest,
+  async (req: Request, res: Response) => {
+    try {
+      const strategy = new Strategy(req.body);
+      const savedStrategy = await strategy.save();
+      res.status(201).json(savedStrategy);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  },
 );
 
 // Get all strategies
 router.get("/", async (req: Request, res: Response) => {
-	try {
-		const strategies = await Strategy.find();
-		res.json(strategies);
-	} catch (error: any) {
-		res.status(500).json({ message: error.message });
-	}
+  try {
+    const marketType = req.query.market_type as string | undefined;
+    const strategies = await Strategy.find(buildMarketTypeFilter(marketType));
+    res.json(strategies);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // Get single strategy
 router.get("/:id", async (req: Request, res: Response) => {
-	try {
-		const strategy = await Strategy.findOne({ id: parseInt(req.params.id) }); // Find by custom 'id'
-		if (!strategy)
-			return res.status(404).json({ message: "Strategy not found" });
-		res.json(strategy);
-	} catch (error: any) {
-		res.status(500).json({ message: error.message });
-	}
+  try {
+    const strategy = await Strategy.findOne({ id: parseInt(req.params.id) }); // Find by custom 'id'
+    if (!strategy)
+      return res.status(404).json({ message: "Strategy not found" });
+    res.json(strategy);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // Update strategy
 router.put(
-	"/:id",
-	updateStrategyValidator,
-	validateRequest,
-	async (req: Request, res: Response) => {
-		try {
-			const strategy = await Strategy.findOne({ id: parseInt(req.params.id) });
-			if (!strategy)
-				return res.status(404).json({ message: "Strategy not found" });
+  "/:id",
+  updateStrategyValidator,
+  validateRequest,
+  async (req: Request, res: Response) => {
+    try {
+      const strategy = await Strategy.findOne({ id: parseInt(req.params.id) });
+      if (!strategy)
+        return res.status(404).json({ message: "Strategy not found" });
 
-			Object.assign(strategy, req.body);
-			const updatedStrategy = await strategy.save();
-			res.json(updatedStrategy);
-		} catch (error: any) {
-			res.status(400).json({ message: error.message });
-		}
-	},
+      Object.assign(strategy, req.body);
+      const updatedStrategy = await strategy.save();
+      res.json(updatedStrategy);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  },
 );
 
 // Delete strategy
 router.delete("/:id", async (req: Request, res: Response) => {
-	try {
-		const strategy = await Strategy.findOneAndDelete({
-			id: parseInt(req.params.id),
-		});
-		if (!strategy)
-			return res.status(404).json({ message: "Strategy not found" });
-		res.json({ message: "Strategy deleted" });
-	} catch (error: any) {
-		res.status(500).json({ message: error.message });
-	}
+  try {
+    const strategy = await Strategy.findOneAndDelete({
+      id: parseInt(req.params.id),
+    });
+    if (!strategy)
+      return res.status(404).json({ message: "Strategy not found" });
+    res.json({ message: "Strategy deleted" });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 export default router;

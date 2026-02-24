@@ -1,8 +1,9 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { useLocation } from "@tanstack/react-router";
 import classNames from "classnames";
 import { Icon } from "./ui/Icon";
 import { getIntegrationStatus } from "../api/client";
 import { useQuery } from "@tanstack/react-query";
+import SidebarNavItem from "./SidebarNavItem";
 
 interface SidebarProps {
 	isCollapsed: boolean;
@@ -19,7 +20,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 
 	return (
 		<div
-			className={`fixed top-0 left-0 h-full bg-surface/95 backdrop-blur-sm border-r border-border text-white flex flex-col transition-all duration-300 z-50 shadow-xl ${isCollapsed ? "w-16" : "w-50"}`}
+			className={`fixed top-0 left-0 h-full bg-surface/95 backdrop-blur-sm border-r border-border border-r-gray-700 text-white flex flex-col transition-all duration-300 z-50 shadow-xl ${isCollapsed ? "w-16" : "w-50"}`}
 		>
 			<div
 				className={classNames(
@@ -41,161 +42,67 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 				</button>
 			</div>
 			<nav className="flex-1 p-3 space-y-2">
-				<Link
+				<SidebarNavItem
 					to="/"
-					className="flex items-center space-x-3 py-3 px-2  rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary  group border border-transparent [&.active]:border-primary/20"
-					title={isCollapsed ? "Dashboard" : ""}
-				>
-					<div className={classNames("min-w-5 flex ")}>
-						<Icon
-							name={activeLocation.pathname === "/" ? "home-active" : "home"}
-							size={{ height: 20, width: 20 }}
-						/>
-					</div>
-					{!isCollapsed && (
-						<span
-							className={`font-medium ${activeLocation.pathname === "/" ? "text-violet-800" : "text-white"}`}
-						>
-							Dashboard
-						</span>
-					)}
-				</Link>
-				<Link
+					label="Dashboard"
+					isCollapsed={isCollapsed}
+					isActive={activeLocation.pathname === "/"}
+					activeIcon="home-active"
+					defaultIcon="home"
+				/>
+				<SidebarNavItem
 					to="/charts"
-					className="flex items-center space-x-3 py-3 px-2  rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary  group border border-transparent [&.active]:border-primary/20"
-					title={isCollapsed ? "Charts" : ""}
-				>
-					<div className={classNames("min-w-5 flex justify-center")}>
-						<Icon
-							name={
-								activeLocation.pathname === "/charts" ? "chart-active" : "chart"
-							}
-							size={{ height: 20, width: 20 }}
-						/>
-					</div>
-					{!isCollapsed && (
-						<span
-							className={`font-medium ${activeLocation.pathname === "/charts" ? "text-violet-800" : "text-white"}`}
-						>
-							Charts
-						</span>
-					)}
-				</Link>
-				<Link
+					label="Charts"
+					isCollapsed={isCollapsed}
+					isActive={activeLocation.pathname === "/charts"}
+					activeIcon="chart-active"
+					defaultIcon="chart"
+				/>
+				<SidebarNavItem
 					to="/goals"
-					className="flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20"
-					title={isCollapsed ? "Goals" : ""}
-				>
-					<div className="min-w-5 flex justify-center">
-						<Icon
-							name={
-								activeLocation.pathname === "/goals"
-									? "list-checked"
-									: "list-default"
-							}
-							size={{ height: 20, width: 20 }}
-						/>
-					</div>
-					{!isCollapsed && (
-						<span
-							className={`font-medium ${activeLocation.pathname === "/goals" ? "text-violet-800" : "text-white"}`}
-						>
-							Goals
-						</span>
-					)}
-				</Link>
-				<Link
+					label="Goals"
+					isCollapsed={isCollapsed}
+					isActive={activeLocation.pathname === "/goals"}
+					activeIcon="list-checked"
+					defaultIcon="list-default"
+				/>
+				<SidebarNavItem
 					to="/integrations"
-					className={`flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20`}
-					title={isCollapsed ? "Integrations" : ""}
-				>
-					<div className="min-w-5 flex justify-center">
-						<Icon
-							name={
-								activeLocation.pathname === "/integrations"
-									? "integration-active"
-									: "integration"
-							}
-							size={{ height: 20, width: 20 }}
-						/>
-					</div>
-					{!isCollapsed && (
-						<span
-							className={`font-medium ${activeLocation.pathname === "/integrations" ? "text-violet-800" : "text-white"}`}
-						>
-							Integrations
-						</span>
-					)}
-				</Link>
-				<Link
-					to="/settings"
-					className={`flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20`}
-					title={isCollapsed ? "Settings" : ""}
-				>
-					<div className="min-w-5 flex justify-center">
-						<Icon
-							name={
-								activeLocation.pathname === "/settings"
-									? "settings-active"
-									: "settings"
-							}
-							size={{ height: 20, width: 20 }}
-						/>
-					</div>
-					{!isCollapsed && (
-						<span
-							className={`font-medium ${activeLocation.pathname === "/settings" ? "text-violet-800" : "text-white"}`}
-						>
-							Settings
-						</span>
-					)}
-				</Link>
-				<Link
+					label="Integrations"
+					isCollapsed={isCollapsed}
+					isActive={activeLocation.pathname === "/integrations"}
+					activeIcon="integration-active"
+					defaultIcon="integration"
+				/>
+
+				<SidebarNavItem
 					to="/deep-dive"
-					className={`flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20`}
-					title={isCollapsed ? "Deep Dive" : ""}
-				>
-					<div className="min-w-5 flex justify-center">
-						<Icon
-							name={
-								activeLocation.pathname === "/deep-dive"
-									? "deep-analyse-active"
-									: "deep-analyse-default"
-							}
-							size={{ height: 20, width: 20 }}
-						/>
-					</div>
-					{!isCollapsed && (
-						<span
-							className={`font-medium ${activeLocation.pathname === "/deep-dive" ? "text-violet-800" : "text-white"}`}
-						>
-							Deep Dive
-						</span>
-					)}
-				</Link>
+					label="Deep Dive"
+					isCollapsed={isCollapsed}
+					isActive={activeLocation.pathname === "/deep-dive"}
+					activeIcon="deep-analyse-active"
+					defaultIcon="deep-analyse-default"
+				/>
 				{getIsDhanEnabled?.enable && (
-					<Link
+					<SidebarNavItem
 						to="/dhan"
-						className={`flex items-center space-x-3 py-3 px-2 rounded-md transition-all duration-200 text-secondary hover:text-white hover:bg-surface-highlight [&.active]:bg-primary/10 [&.active]:text-primary group border border-transparent [&.active]:border-primary/20`}
-						title={isCollapsed ? "Integrations" : ""}
-					>
-						<div className="min-w-5 flex justify-center">
-							<Icon
-								name={activeLocation.pathname === "/dhan" ? "dhan" : "dhan"}
-								size={{ height: 20, width: 20 }}
-							/>
-						</div>
-						{!isCollapsed && (
-							<span
-								className={`font-medium ${activeLocation.pathname === "/dhan" ? "text-violet-800" : "text-white"}`}
-							>
-								Dhan
-							</span>
-						)}
-					</Link>
+						label="Dhan"
+						isCollapsed={isCollapsed}
+						isActive={activeLocation.pathname === "/dhan"}
+						activeIcon="dhan"
+						defaultIcon="dhan"
+					/>
 				)}
+				<SidebarNavItem
+					to="/settings"
+					label="Settings"
+					isCollapsed={isCollapsed}
+					isActive={activeLocation.pathname === "/settings"}
+					activeIcon="settings-active"
+					defaultIcon="settings"
+				/>
 			</nav>
-			<div className="p-4 border-t border-border text-xs text-secondary text-center truncate font-mono">
+			<div className="p-4 border-t border-border border-t-gray-700 text-xs text-secondary text-center truncate font-mono">
 				{!isCollapsed ? "v1.0.0" : "v1"}
 			</div>
 		</div>

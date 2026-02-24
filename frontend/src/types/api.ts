@@ -1,4 +1,5 @@
 // API Response Types matching backend models
+export type MarketType = "equity" | "forex";
 
 export interface Trade {
 	_id: string;
@@ -21,7 +22,7 @@ export interface Trade {
 	stop_loss: number;
 	entry_id: number | null;
 	pl: number | null;
-	tags: string[];
+	tags: TTradeTags[];
 	is_greed: boolean;
 	is_fomo: boolean;
 	market_condition: string;
@@ -35,12 +36,18 @@ export interface Trade {
 	post_trade_thoughts?: string;
 	rule_violations?: string[];
 	exits?: { quantity: number; price: number }[];
+	trade_type: "equity" | "forex";
+}
+export type TTradeTags = {
+	id: number;
+	name: string;
 }
 
 export interface Strategy {
 	_id: string;
 	id: number;
 	name: string;
+	market_type: MarketType;
 	description: string | null;
 	createdAt?: string;
 	updatedAt?: string;
@@ -51,6 +58,7 @@ export interface TSymbol {
 	id: number;
 	symbol: string;
 	name: string;
+	market_type: MarketType;
 	createdAt?: string;
 	updatedAt?: string;
 }
@@ -104,6 +112,7 @@ export type TFilters = {
 	tags?: string[];
 	from?: string;
 	to?: string;
+	trade_type?: "equity" | "forex";
 };
 
 export interface TimeseriesDataPoint {
@@ -131,7 +140,9 @@ export interface Portfolio {
 	id: number;
 	name: string;
 	balance: number;
+	currency?: string;
 	is_testing: boolean;
+	market_type: MarketType;
 	createdAt?: string;
 	updatedAt?: string;
 }

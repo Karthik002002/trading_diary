@@ -34,6 +34,7 @@ const dashboardSearchSchema = z.object({
 	symbol: z.number().optional(),
 	status: z.string().optional(),
 	tags: z.array(z.string()).optional(),
+	trade_type: z.string().optional(),
 });
 
 const indexRoute = createRoute({

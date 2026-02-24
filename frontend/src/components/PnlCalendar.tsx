@@ -6,6 +6,7 @@ import { useState } from "react";
 import { usePnlCalendar } from "../hooks/useTrades";
 import { Icon } from "./ui/Icon";
 import { usePreferenceStore } from "../store/preferenceStore";
+import { useMarketTypeQueryParam } from "../hooks/useMarketTypeQueryParam";
 
 
 type CalendarProps = {};
@@ -23,8 +24,10 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
 	const [currentDate, setCurrentDate] = useState(new Date());
 	const search: any = useSearch({ from: "/" });
 	const { currency } = usePreferenceStore();
+	const { marketType } = useMarketTypeQueryParam();
 	const year = currentDate.getFullYear();
 	const month = currentDate.getMonth();
+
 	const filters = {
 		strategy_id: search.strategy_id,
 		outcome: search.outcome,
@@ -33,6 +36,7 @@ const PnlCalendar: React.FC<CalendarProps> = () => {
 		portfolio_id: search.portfolio_id,
 		status: search.status,
 		tags: search.tags,
+		trade_type: search.trade_type || marketType,
 	};
 
 	const { data: pnlDataArray, isLoading: loading } = usePnlCalendar(

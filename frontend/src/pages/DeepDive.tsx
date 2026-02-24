@@ -1,12 +1,12 @@
 import React, { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Col, Row, Spin, Table, Typography, Statistic, Tag, Input, AutoComplete } from "antd";
+import { Card, Col, Row, Spin, Typography, Statistic, Tag, Input, AutoComplete } from "antd";
 import { RobotOutlined } from "@ant-design/icons";
 import { fetchDeepDiveAnalysis } from "../api/client";
 import ChartComponent from "../components/ui/resuable/chart/ChartComponent";
+import TradeTable from "../components/TradeTable";
 import { useStrategies, useSymbols } from "../hooks/useTrades";
 import { usePortfolios, useTags } from "../hooks/useResources";
-import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 
@@ -28,6 +28,7 @@ const FILTER_FIELDS = [
     { label: "FOMO", value: "is_fomo", type: "boolean" },
     { label: "Entry Exec", value: "entry_execution", type: "select", options: ["perfect", "early", "late"] },
     { label: "Exit Exec", value: "exit_execution", type: "select", options: ["perfect", "early", "late"] },
+    { label: "Trade Type", value: "trade_type", type: "select", options: ["equity", "forex"] },
 ];
 
 interface Chip {
@@ -44,6 +45,8 @@ const DeepDive: React.FC = () => {
     const [inputValue, setInputValue] = useState("");
     const [options, setOptions] = useState<{ value: string; label: string; rawValue?: any }[]>([]);
     const inputRef = useRef<any>(null);
+    const tradeTypeChip = chips.find((c) => c.field === "trade_type");
+    const marketType = tradeTypeChip?.value === "forex" ? "forex" : "equity";
 
     // Fetch Resources
     const { data: strategies } = useStrategies();
@@ -51,9 +54,7 @@ const DeepDive: React.FC = () => {
     const { data: portfolios } = usePortfolios();
     const { data: tags } = useTags();
 
-    // Map for displaying names in table
-    const strategyMap = React.useMemo(() => strategies?.reduce((acc: any, s: any) => ({ ...acc, [s.id]: s.name }), {}) || {}, [strategies]);
-    const symbolMap = React.useMemo(() => symbols?.reduce((acc: any, s: any) => ({ ...acc, [s.id]: s.symbol }), {}) || {}, [symbols]);
+
 
     // Construct backend payload from chips
     const backendFilters = React.useMemo(() => chips.map(chip => ({
@@ -62,9 +63,11 @@ const DeepDive: React.FC = () => {
         value: chip.value
     })), [chips]);
 
+    const tradeType = marketType;
+
     const { data, isLoading } = useQuery({
-        queryKey: ["deep-dive", backendFilters],
-        queryFn: () => fetchDeepDiveAnalysis(backendFilters),
+        queryKey: ["deep-dive", backendFilters, tradeType],
+        queryFn: () => fetchDeepDiveAnalysis(backendFilters, tradeType),
         enabled: backendFilters.length > 0,
     });
 
@@ -164,24 +167,7 @@ const DeepDive: React.FC = () => {
         setChips(chips.filter(c => c.id !== id));
     };
 
-    // Columns for Table
-    const columns = [
-        { title: 'Date', dataIndex: 'trade_date', key: 'date', render: (val: string) => dayjs(val).format("YYYY-MM-DD") },
-        { title: 'Symbol', dataIndex: 'symbol_id', key: 'symbol', render: (val: number) => symbolMap[val] || val },
-        { title: 'Strategy', dataIndex: 'strategy_id', key: 'strategy', render: (val: number) => strategyMap[val] || val },
-        { title: 'Type', dataIndex: 'type', key: 'type', render: (val: string) => <Tag color={val === 'buy' ? 'green' : 'red'}>{val.toUpperCase()}</Tag> },
-        {
-            title: 'Outcome',
-            dataIndex: 'outcome',
-            key: 'outcome',
-            render: (val: string) => {
-                const color = val === 'win' ? 'green' : val === 'loss' ? 'red' : 'default';
-                return <Tag color={color}>{val.toUpperCase()}</Tag>
-            }
-        },
-        { title: 'P/L', dataIndex: 'pl', key: 'pl', render: (val: number) => <span className={val >= 0 ? "text-green-500" : "text-red-500"}>{val?.toFixed(2)}</span> },
-        { title: 'RR', dataIndex: 'actual_rr', key: 'rr', render: (val: number) => val?.toFixed(2) },
-    ];
+
 
     const equityData = data?.equityCurve?.map((pt: any) => ({
         x: new Date(pt.date).toLocaleDateString(),
@@ -288,11 +274,11 @@ const DeepDive: React.FC = () => {
                             </div>
                         </Col>
                         <Col xs={24} lg={16}>
-                            <div className="h-[300px] w-full bg-surface rounded-lg ">
+                            <div className="h-[300px] w-full  rounded-lg ">
                                 <ChartComponent
                                     chartType="line"
                                     data={equityData}
-                                    title="Filtered Equity Curve"
+                                    title="Equity Curve"
                                     xAxisKey="x"
                                     yAxisKey="y"
                                     seriesName="Equity"
@@ -304,14 +290,7 @@ const DeepDive: React.FC = () => {
 
                     {/* Trades Table */}
                     <Card title={`Matched Trades (${data.trades.length})`} className="bg-surface border-border">
-                        <Table
-                            dataSource={data.trades}
-                            columns={columns}
-                            rowKey="_id"
-                            pagination={{ pageSize: 10 }}
-                            scroll={{ x: true }}
-                            size="small"
-                        />
+                        <TradeTable externalTrades={data.trades} useInfiniteScroll={false} />
                     </Card>
                 </div>
             ) : (

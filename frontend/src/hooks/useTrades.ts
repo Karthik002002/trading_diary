@@ -1,138 +1,146 @@
 import {
-	useInfiniteQuery,
-	useMutation,
-	useQuery,
-	useQueryClient,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
 } from "@tanstack/react-query";
 import {
-	createTrade,
-	deleteTrade,
-	fetchPerformanceMetric,
-	fetchPnlCalendar,
-	fetchStrategies,
-	fetchSymbols,
-	fetchTrades,
-	updateTrade,
-	updateStrategy,
+  createTrade,
+  deleteTrade,
+  fetchPerformanceMetric,
+  fetchPnlCalendar,
+  fetchStrategiesByMarket,
+  fetchSymbols,
+  fetchTrades,
+  updateTrade,
+  updateStrategy,
 } from "../api/client";
 import type {
-	PnlCalendarDay,
-	Strategy,
-	TSymbol,
-	TFilters,
-	Trade,
-	TradeResponse,
+  PnlCalendarDay,
+  Strategy,
+  TSymbol,
+  TFilters,
+  Trade,
+  TradeResponse,
 } from "../types/api";
+import { useMarketTypeQueryParam } from "./useMarketTypeQueryParam";
 
 // Re-export types for convenience
 export type { Trade, TradeResponse, Strategy, TSymbol as Symbol };
 
 export const useTrades = (page: number, limit: number, filters?: TFilters) => {
-	return useQuery<TradeResponse>({
-		queryKey: ["trades", page, limit, filters],
-		queryFn: () => fetchTrades(page, limit, filters),
-		placeholderData: (previousData) => previousData,
-	});
+  return useQuery<TradeResponse>({
+    queryKey: ["trades", page, limit, filters],
+    queryFn: () => fetchTrades(page, limit, filters),
+    placeholderData: (previousData) => previousData,
+  });
 };
 
 export const useInfiniteTrades = (limit: number, filters?: TFilters) => {
-	return useInfiniteQuery<TradeResponse>({
-		queryKey: ["trades", "infinite", limit, filters],
-		queryFn: ({ pageParam = 1 }) =>
-			fetchTrades(pageParam as number, limit, filters),
-		getNextPageParam: (lastPage) => {
-			const { page, pages } = lastPage.pagination;
-			return page < pages ? page + 1 : undefined;
-		},
-		initialPageParam: 1,
-	});
+  return useInfiniteQuery<TradeResponse>({
+    queryKey: ["trades", "infinite", limit, filters],
+    queryFn: ({ pageParam = 1 }) =>
+      fetchTrades(pageParam as number, limit, filters),
+    getNextPageParam: (lastPage) => {
+      const { page, pages } = lastPage.pagination;
+      return page < pages ? page + 1 : undefined;
+    },
+    initialPageParam: 1,
+  });
 };
 
 export const useCreateTrade = () => {
-	const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
 
-	return useMutation({
-		mutationFn: createTrade,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["trades"] });
-			queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
-			queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
-		},
-	});
+  return useMutation({
+    mutationFn: ({ data, tradeType }: { data: FormData; tradeType?: string }) =>
+      createTrade(data, tradeType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trades"] });
+      queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
+      queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
+    },
+  });
 };
 
 export const useUpdateTrade = () => {
-	const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
 
-	return useMutation({
-		mutationFn: ({ id, data }: { id: string; data: FormData }) =>
-			updateTrade(id, data),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["trades"] });
-			queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
-			queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
-		},
-	});
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+      tradeType,
+    }: {
+      id: string;
+      data: FormData;
+      tradeType?: string;
+    }) => updateTrade(id, data, tradeType ?? "equity"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trades"] });
+      queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
+      queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
+    },
+  });
 };
 
 export const useDeleteTrade = () => {
-	const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
 
-	return useMutation({
-		mutationFn: deleteTrade,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["trades"] });
-			queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
-			queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
-		},
-	});
+  return useMutation({
+    mutationFn: ({ id, tradeType }: { id: string; tradeType?: string }) =>
+      deleteTrade(id, tradeType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trades"] });
+      queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
+      queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
+    },
+  });
 };
 
 export const useStrategies = () => {
-	return useQuery<Strategy[]>({
-		queryKey: ["strategies"],
-		queryFn: fetchStrategies,
-	});
+  const { marketType } = useMarketTypeQueryParam();
+  return useQuery<Strategy[]>({
+    queryKey: ["strategies", marketType],
+    queryFn: () => fetchStrategiesByMarket(marketType),
+  });
 };
 
 export const useSymbols = () => {
-	return useQuery<TSymbol[]>({
-		queryKey: ["symbols"],
-		queryFn: fetchSymbols,
-	});
+  const { marketType } = useMarketTypeQueryParam();
+  return useQuery<TSymbol[]>({
+    queryKey: ["symbols", marketType],
+    queryFn: () => fetchSymbols(marketType),
+  });
 };
 
 export const usePnlCalendar = (
-	month: number,
-	year: number,
-	filters?: TFilters,
+  month: number,
+  year: number,
+  filters?: TFilters,
 ) => {
-	return useQuery<PnlCalendarDay[]>({
-		queryKey: ["pnlCalendar", month, year, filters],
-		queryFn: () => fetchPnlCalendar(month, year, filters),
-	});
+  return useQuery<PnlCalendarDay[]>({
+    queryKey: ["pnlCalendar", month, year, filters],
+    queryFn: () => fetchPnlCalendar(month, year, filters),
+  });
 };
 
-export const usePerformanceMetrics = ({
-	filters,
-}: {
-	filters: Record<string, string>;
-}) => {
-	return useQuery({
-		queryKey: ["performance-metric", filters],
-		queryFn: () => fetchPerformanceMetric(filters),
-	});
+export const usePerformanceMetrics = ({ filters }: { filters: TFilters }) => {
+  return useQuery({
+    queryKey: ["performance-metric", filters],
+    queryFn: () => fetchPerformanceMetric(filters),
+  });
 };
 
 export const useUpdateStrategy = () => {
-	const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
 
-	return useMutation({
-		mutationFn: ({ id, data }: { id: number; data: Partial<Strategy> }) =>
-			updateStrategy(id, data),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["strategies"] });
-			queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
-		},
-	});
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Strategy> }) =>
+      updateStrategy(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["strategies"] });
+      queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
+    },
+  });
 };

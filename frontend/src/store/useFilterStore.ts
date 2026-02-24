@@ -16,6 +16,7 @@ export const useFilterStore = create<FilterState>((set) => ({
 	tags: undefined,
 	from: undefined,
 	to: undefined,
+	trade_type: "equity",
 	setFilters: (filters) => set((state) => ({ ...state, ...filters })),
 	resetFilters: () =>
 		set({
@@ -28,5 +29,6 @@ export const useFilterStore = create<FilterState>((set) => ({
 			tags: undefined,
 			from: undefined,
 			to: undefined,
+			trade_type: "equity",
 		}),
 }));

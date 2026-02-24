@@ -1,6 +1,7 @@
 import { message } from "antd";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+
 export type TDashboardDisplayState =
 	| "winRate"
 	| "avgRR"
@@ -14,11 +15,16 @@ export type TDashboardDisplayState =
 	| "worstTrade"
 	| "maxPnl"
 	| "minPnl";
+
 type TDataPReference = "portfolio_id" | "strategy_id";
+
 export type TDataPReferences = Record<
 	TDataPReference,
 	string | number | undefined
 >;
+
+export type TPortfolioCurrency = "INR" | "USD" | "EUR" | "GBP" | "JPY";
+
 export type TPreferenceStore = {
 	defaultQuantity: string;
 	setDefaultQuantity: (quantity: string) => void;
@@ -32,6 +38,12 @@ export type TPreferenceStore = {
 	setMaxLoss: (maxLoss: string) => void;
 	currency: string;
 	setCurrency: (currency: string) => void;
+	portfolioCurrencyById: Record<number, TPortfolioCurrency>;
+	setPortfolioCurrency: (
+		portfolioId: number,
+		currency: TPortfolioCurrency,
+	) => void;
+	removePortfolioCurrency: (portfolioId: number) => void;
 	dataPreference: TDataPReferences;
 	setDataPreference: (
 		s: TDataPReference,
@@ -46,7 +58,6 @@ export const preferenceStore = create<TPreferenceStore>()(
 			setDefaultQuantity: (quantity: string) =>
 				set({ defaultQuantity: quantity }),
 			dashboardDisplayState: {
-				// max 5 only
 				winRate: true,
 				avgRR: true,
 				expectancy: true,
@@ -88,9 +99,23 @@ export const preferenceStore = create<TPreferenceStore>()(
 					};
 				}),
 			maxLoss: "",
-			setMaxLoss: (maxLoss: string) => set({ maxLoss: maxLoss }),
-			currency: "₹",
-			setCurrency: (currency: string) => set({ currency: currency }),
+			setMaxLoss: (maxLoss: string) => set({ maxLoss }),
+			currency: "\u20B9",
+			setCurrency: (currency: string) => set({ currency }),
+			portfolioCurrencyById: {},
+			setPortfolioCurrency: (portfolioId, currency) =>
+				set((prev) => ({
+					portfolioCurrencyById: {
+						...prev.portfolioCurrencyById,
+						[portfolioId]: currency,
+					},
+				})),
+			removePortfolioCurrency: (portfolioId) =>
+				set((prev) => {
+					const next = { ...prev.portfolioCurrencyById };
+					delete next[portfolioId];
+					return { portfolioCurrencyById: next };
+				}),
 			dataPreference: { portfolio_id: undefined, strategy_id: undefined },
 			setDataPreference: (s, value) =>
 				set((prev) => {
@@ -99,10 +124,9 @@ export const preferenceStore = create<TPreferenceStore>()(
 					return { dataPreference: prevDataPreference };
 				}),
 		}),
-
 		{
 			name: "preferenceStore",
-			version: 1.03,
+			version: 1.04,
 			storage: createJSONStorage(() => localStorage),
 		},
 	),

@@ -5,12 +5,19 @@ export interface IPortfolio extends Document {
 	name: string;
 	balance: number;
 	is_testing: boolean;
+	market_type: "equity" | "forex";
 }
 
 const PortfolioSchema: Schema = new Schema(
 	{
 		id: { type: Number, unique: true },
 		name: { type: String, required: true },
+		market_type: {
+			type: String,
+			enum: ["equity", "forex"],
+			default: "equity",
+			required: true,
+		},
 		balance: {
 			type: Number,
 			required: true,

@@ -37,6 +37,7 @@ export interface ITrade extends Document {
 	timeframe_photos: { type: string; photo: string }[];
 	exits: { quantity: number; price: number; }[];
 	status: "IN" | "NIN";
+	trade_type: "equity" | "forex";
 }
 
 const TradeSchema: Schema = new Schema(
@@ -144,6 +145,12 @@ const TradeSchema: Schema = new Schema(
 				},
 			],
 			default: [],
+		},
+		trade_type: {
+			type: String,
+			enum: ["equity", "forex"],
+			required: true,
+			default: "equity",
 		},
 	},
 	{

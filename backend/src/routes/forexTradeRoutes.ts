@@ -1,0 +1,853 @@
+import express, { type Request, type Response } from "express";
+import { validateRequest } from "../middleware/validateRequest";
+import Tag from "../models/tag";
+import ForexTrade from "../models/forexTrade";
+import Strategy from "../models/strategy";
+import Symbol from "../models/symbol";
+import {
+    createTradeValidator,
+    updateTradeValidator,
+} from "../validators/tradeValidators";
+import Portfolio from "../models/portfolio";
+import mongoose from "mongoose";
+import { upload } from "../middleware/uploadMiddleware";
+
+const router = express.Router();
+const FOREX_MIN_LOT = 0.01;
+const FOREX_MAX_LOT = 10;
+const DEFAULT_FOREX_CONTRACT_SIZE = 100000;
+
+const isCompatibleMarketType = (
+    entityMarketType: string | undefined,
+    expected: "equity" | "forex",
+) => {
+    if (!entityMarketType) {
+        return expected === "equity";
+    }
+    return entityMarketType === expected;
+};
+
+const parseTradeBody = (req: Request, res: Response, next: express.NextFunction) => {
+    if (req.body.rule_violations && typeof req.body.rule_violations === "string") {
+        try {
+            req.body.rule_violations = JSON.parse(req.body.rule_violations);
+        } catch (e) {
+            console.error("Error parsing rule_violations", e);
+            req.body.rule_violations = [];
+        }
+    }
+
+    if (req.body.timeframe_photos && typeof req.body.timeframe_photos === "string") {
+        try {
+            req.body.timeframe_photos = JSON.parse(req.body.timeframe_photos);
+        } catch (e) {
+            console.error("Error parsing timeframe_photos", e);
+            req.body.timeframe_photos = [];
+        }
+    }
+
+    if (req.body.tags && typeof req.body.tags === "string") {
+        try {
+            req.body.tags = JSON.parse(req.body.tags);
+        } catch (e) {
+            console.error("Error parsing tags", e);
+            req.body.tags = [];
+        }
+    }
+
+    if (req.body.exits && typeof req.body.exits === "string") {
+        try {
+            req.body.exits = JSON.parse(req.body.exits);
+        } catch (e) {
+            console.error("Error parsing exits", e);
+            req.body.exits = [];
+        }
+    }
+
+    if (req.body.is_greed === "true" || req.body.is_greed === "false") {
+        req.body.is_greed = req.body.is_greed === "true";
+    }
+    if (req.body.is_fomo === "true" || req.body.is_fomo === "false") {
+        req.body.is_fomo = req.body.is_fomo === "true";
+    }
+
+    next();
+};
+
+const normalizeForexTradeBody = (
+    req: Request,
+    res: Response,
+    next: express.NextFunction,
+) => {
+    // Accept lot/contract aliases from client and map to quantity if provided.
+    if (req.body.quantity == null) {
+        if (req.body.lot != null) req.body.quantity = req.body.lot;
+        if (req.body.contract != null) req.body.quantity = req.body.contract;
+    }
+
+    const toNumber = (value: any) => {
+        if (value === null || value === undefined || value === "") return value;
+        const num = Number(value);
+        return Number.isFinite(num) ? num : value;
+    };
+
+    req.body.quantity = toNumber(req.body.quantity);
+    req.body.entry_price = toNumber(req.body.entry_price);
+    req.body.exit_price = toNumber(req.body.exit_price);
+    req.body.stop_loss = toNumber(req.body.stop_loss);
+    req.body.take_profit = toNumber(req.body.take_profit);
+    req.body.fees = toNumber(req.body.fees);
+    req.body.contract_size = toNumber(req.body.contract_size);
+
+    if (Array.isArray(req.body.exits)) {
+        req.body.exits = req.body.exits.map((exit: any) => ({
+            ...exit,
+            quantity: toNumber(exit.quantity),
+            price: toNumber(exit.price),
+        }));
+    }
+
+    if (req.body.quantity != null) {
+        const lot = Number(req.body.quantity);
+        if (!Number.isFinite(lot) || lot < FOREX_MIN_LOT || lot > FOREX_MAX_LOT) {
+            return res.status(400).json({
+                message: `Forex lot/contract size must be between ${FOREX_MIN_LOT} and ${FOREX_MAX_LOT}`,
+            });
+        }
+        req.body.quantity = Number(lot.toFixed(2));
+    }
+
+    if (req.body.contract_size == null || req.body.contract_size === "") {
+        req.body.contract_size = DEFAULT_FOREX_CONTRACT_SIZE;
+    } else {
+        const contractSize = Number(req.body.contract_size);
+        if (!Number.isFinite(contractSize) || contractSize <= 0) {
+            return res
+                .status(400)
+                .json({ message: "Contract size must be a positive number" });
+        }
+        req.body.contract_size = contractSize;
+    }
+
+    if (Array.isArray(req.body.exits) && req.body.exits.length > 0) {
+        for (const exit of req.body.exits) {
+            const exitLot = Number(exit.quantity);
+            if (
+                !Number.isFinite(exitLot) ||
+                exitLot < FOREX_MIN_LOT ||
+                exitLot > FOREX_MAX_LOT
+            ) {
+                return res.status(400).json({
+                    message: `Each forex exit lot must be between ${FOREX_MIN_LOT} and ${FOREX_MAX_LOT}`,
+                });
+            }
+            exit.quantity = Number(exitLot.toFixed(2));
+        }
+
+        if (req.body.quantity != null) {
+            const totalExitLots = req.body.exits.reduce(
+                (sum: number, exit: any) => sum + Number(exit.quantity || 0),
+                0,
+            );
+            if (totalExitLots - Number(req.body.quantity) > 1e-8) {
+                return res
+                    .status(400)
+                    .json({ message: "Total exit lot size cannot exceed entry lot size" });
+            }
+        }
+    }
+
+    next();
+};
+const buildTradeQuery = (query: any) => {
+    const { strategy_id, outcome, search, symbol, portfolio_id, status, tags, from, to } =
+        query;
+    const mongoQuery: any = {};
+
+    if (strategy_id) {
+        mongoQuery.strategy_id = Number(strategy_id);
+    }
+    if (symbol) {
+        mongoQuery.symbol_id = Number(symbol);
+    }
+    if (portfolio_id) {
+        mongoQuery.portfolio_id = Number(portfolio_id);
+    }
+    if (outcome) {
+        mongoQuery.outcome = outcome;
+    }
+    if (status) {
+        mongoQuery.status = status;
+    }
+    if (tags) {
+        const tagIds = Array.isArray(tags) ? tags : String(tags).split(",");
+        if (tagIds.length > 0) {
+            mongoQuery.tags = { $in: tagIds };
+        }
+    }
+    if (search) {
+        const searchRegex = { $regex: search, $options: "i" };
+        mongoQuery.$or = [
+            { entry_reason: searchRegex },
+            { exit_reason: searchRegex },
+            { notes: searchRegex },
+        ];
+    }
+    return mongoQuery;
+};
+
+const validateTradeResourceMarketType = async (
+    body: any,
+    expectedMarketType: "equity" | "forex",
+) => {
+    const strategy = await Strategy.findOne({ id: Number(body.strategy_id) }).lean();
+    if (!strategy) {
+        return { valid: false, message: "Invalid strategy_id" };
+    }
+    if (!isCompatibleMarketType(strategy.market_type, expectedMarketType)) {
+        return {
+            valid: false,
+            message: `Strategy ${strategy.id} is not configured for ${expectedMarketType} trades`,
+        };
+    }
+
+    const symbol = await Symbol.findOne({ id: Number(body.symbol_id) }).lean();
+    if (!symbol) {
+        return { valid: false, message: "Invalid symbol_id" };
+    }
+    if (!isCompatibleMarketType(symbol.market_type, expectedMarketType)) {
+        return {
+            valid: false,
+            message: `Symbol ${symbol.id} is not configured for ${expectedMarketType} trades`,
+        };
+    }
+
+    if (body.portfolio_id !== null && body.portfolio_id !== undefined) {
+        const portfolio = await Portfolio.findOne({
+            id: Number(body.portfolio_id),
+        }).lean();
+        if (!portfolio) {
+            return { valid: false, message: "Invalid portfolio_id" };
+        }
+        if (!isCompatibleMarketType(portfolio.market_type, expectedMarketType)) {
+            return {
+                valid: false,
+                message: `Portfolio ${portfolio.id} is not configured for ${expectedMarketType} trades`,
+            };
+        }
+    }
+
+    return { valid: true };
+};
+
+// Get performance statistics
+router.get("/stats/performance-metric", async (req: Request, res: Response) => {
+    try {
+        const query = buildTradeQuery(req.query);
+        const stats = await ForexTrade.aggregate([
+            { $match: query },
+            {
+                $group: {
+                    _id: null,
+                    totalTrades: { $sum: 1 },
+                    wins: { $sum: { $cond: [{ $eq: ["$outcome", "win"] }, 1, 0] } },
+                    losses: { $sum: { $cond: [{ $eq: ["$outcome", "loss"] }, 1, 0] } },
+                    totalPl: { $sum: "$pl" },
+                    totalReturns: { $sum: "$returns" },
+                    totalRr: { $sum: "$actual_rr" },
+                    avgWin: {
+                        $avg: { $cond: [{ $eq: ["$outcome", "win"] }, "$pl", null] },
+                    },
+                    avgLoss: {
+                        $avg: { $cond: [{ $eq: ["$outcome", "loss"] }, "$pl", null] },
+                    },
+                    avgConfidence: { $avg: "$confidence_level" },
+                    stdDevPl: { $stdDevPop: "$pl" },
+                    maxPl: { $max: "$pl" },
+                    minPl: { $min: "$pl" },
+                    maxReturn: { $max: "$returns" },
+                    minReturn: { $min: "$returns" },
+                },
+            },
+        ]);
+
+        if (stats.length === 0) {
+            return res.json({
+                winRate: 0,
+                avgRr: 0,
+                expectancy: 0,
+                totalTrades: 0,
+                avgConfidence: 0,
+                consistencyScore: 0,
+                bestTrade: 0,
+                worstTrade: 0,
+                maxDrawdown: 0,
+                totalPnl: 0,
+                totalReturns: 0,
+            });
+        }
+
+        const {
+            totalTrades,
+            wins,
+            losses,
+            totalRr,
+            totalPl,
+            totalReturns,
+            avgWin,
+            avgLoss,
+            avgConfidence,
+            stdDevPl,
+            maxPl,
+            minPl,
+        } = stats[0];
+
+        const tradesForDrawdown = await ForexTrade.find(query)
+            .sort({ trade_date: 1 })
+            .select("returns");
+
+        let currentEquity = 100;
+        let peakEquity = 100;
+        let maxDrawdownPercent = 0;
+
+        tradesForDrawdown.forEach((trade) => {
+            const tradeReturn = trade.returns || 0;
+            currentEquity *= 1 + tradeReturn / 100;
+
+            if (currentEquity > peakEquity) {
+                peakEquity = currentEquity;
+            }
+
+            const drawdown = ((peakEquity - currentEquity) / peakEquity) * 100;
+            if (drawdown > maxDrawdownPercent) {
+                maxDrawdownPercent = drawdown;
+            }
+        });
+
+        const winRate = totalTrades > 0 ? (wins / (wins + losses || 1)) * 100 : 0;
+        const avgRr = totalTrades > 0 ? totalRr / totalTrades : 0;
+        const winProb = wins / (wins + losses || 1);
+        const lossProb = losses / (wins + losses || 1);
+        const expectancy = winProb * (avgWin || 0) + lossProb * (avgLoss || 0);
+
+        res.json({
+            winRate: Number(winRate.toFixed(2)),
+            avgRr: Number(avgRr.toFixed(2)),
+            expectancy: Number(expectancy.toFixed(2)),
+            totalTrades,
+            totalReturns: Number(totalReturns.toFixed(2)),
+            totalPnl: Number(totalPl.toFixed(2)),
+            avgConfidence: Number((avgConfidence || 0).toFixed(2)),
+            consistencyScore: Number((stdDevPl || 0).toFixed(2)),
+            bestTrade: Number((maxPl || 0).toFixed(2)),
+            worstTrade: Number((minPl || 0).toFixed(2)),
+            maxDrawdown: Number(maxDrawdownPercent.toFixed(2)),
+            stats,
+        });
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Get execution statistics
+router.get("/stats/execution-metric", async (req: Request, res: Response) => {
+    try {
+        const query = buildTradeQuery(req.query);
+        const stats = await ForexTrade.aggregate([
+            { $match: query },
+            {
+                $facet: {
+                    executionStats: [
+                        {
+                            $group: {
+                                _id: null,
+                                perfectEntries: {
+                                    $sum: {
+                                        $cond: [{ $eq: ["$entry_execution", "perfect"] }, 1, 0],
+                                    },
+                                },
+                                perfectExits: {
+                                    $sum: {
+                                        $cond: [{ $eq: ["$exit_execution", "perfect"] }, 1, 0],
+                                    },
+                                },
+                                totalTrades: { $sum: 1 },
+                            },
+                        },
+                    ],
+                    mistakeStats: [
+                        {
+                            $group: {
+                                _id: null,
+                                greedCount: { $sum: { $cond: ["$is_greed", 1, 0] } },
+                                fomoCount: { $sum: { $cond: ["$is_fomo", 1, 0] } },
+                            },
+                        },
+                    ],
+                    ruleViolations: [
+                        { $unwind: "$rule_violations" },
+                        {
+                            $group: {
+                                _id: "$rule_violations",
+                                count: { $sum: 1 },
+                            },
+                        },
+                    ],
+                },
+            },
+        ]);
+
+        const execution = stats[0].executionStats[0] || {
+            perfectEntries: 0,
+            perfectExits: 0,
+            totalTrades: 0,
+        };
+        const mistakes = stats[0].mistakeStats[0] || {
+            greedCount: 0,
+            fomoCount: 0,
+        };
+        const ruleViolations = stats[0].ruleViolations.reduce(
+            (acc: any, curr: any) => {
+                acc[curr._id] = curr.count;
+                return acc;
+            },
+            {},
+        );
+
+        res.json({
+            efficiency: {
+                entryEfficiency:
+                    execution.totalTrades > 0
+                        ? Number(((execution.perfectEntries / execution.totalTrades) * 100).toFixed(2))
+                        : 0,
+                exitEfficiency:
+                    execution.totalTrades > 0
+                        ? Number(((execution.perfectExits / execution.totalTrades) * 100).toFixed(2))
+                        : 0,
+            },
+            mistakes: {
+                greed: mistakes.greedCount,
+                fomo: mistakes.fomoCount,
+                ruleViolations,
+            },
+        });
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Get P&L for calendar
+router.get("/pnl/calendar", async (req: Request, res: Response) => {
+    try {
+        const { month, year } = req.query;
+        const query = buildTradeQuery(req.query);
+        if (!month || !year) {
+            return res.status(400).json({ message: "Month and year are required" });
+        }
+
+        const start = new Date(Number(year), Number(month) - 1, 1);
+        const end = new Date(Number(year), Number(month), 0, 23, 59, 59, 999);
+
+        const trades = await ForexTrade.aggregate([
+            {
+                $match: {
+                    ...query,
+                    trade_date: {
+                        $gte: start,
+                        $lte: end,
+                    },
+                },
+            },
+            {
+                $lookup: {
+                    from: "portfolios",
+                    localField: "portfolio_id",
+                    foreignField: "id",
+                    as: "portfolio"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$portfolio",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        date: { $dateToString: { format: "%Y-%m-%d", date: "$trade_date" } },
+                        portfolio: "$portfolio.name"
+                    },
+                    totalReturn: { $sum: "$returns" },
+                    totalPnl: { $sum: "$pl" },
+                    count: { $sum: 1 },
+                },
+            },
+            {
+                $group: {
+                    _id: "$_id.date",
+                    totalReturn: { $sum: "$totalReturn" },
+                    totalPnl: { $sum: "$totalPnl" },
+                    totalCount: { $sum: "$count" },
+                    portfolios: {
+                        $push: {
+                            name: "$_id.portfolio",
+                            count: "$count"
+                        }
+                    }
+                }
+            },
+            {
+                $sort: { _id: 1 },
+            },
+        ]);
+
+        const result = trades.map((t) => {
+            const trades_count: Record<string, number> = {};
+            const portfolio_names: string[] = [];
+
+            t.portfolios.forEach((p: any) => {
+                const name = p.name || "Unknown";
+                trades_count[name] = p.count;
+                if (!portfolio_names.includes(name)) {
+                    portfolio_names.push(name);
+                }
+            });
+
+            return {
+                date: t._id,
+                pnl: t.totalPnl,
+                returns: t.totalReturn,
+                count: t.totalCount,
+                trades_count,
+                portfolio_names
+            };
+        });
+
+        res.json(result);
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Create new forex trade
+router.post(
+    "/",
+    upload.any(),
+    parseTradeBody,
+    normalizeForexTradeBody,
+    createTradeValidator,
+    validateRequest,
+    async (req: Request, res: Response) => {
+        try {
+            const marketValidation = await validateTradeResourceMarketType(
+                req.body,
+                "forex",
+            );
+            if (!marketValidation.valid) {
+                return res.status(400).json({ message: marketValidation.message });
+            }
+
+            if (req.files && Array.isArray(req.files)) {
+                const files = req.files as Express.Multer.File[];
+                const mainPhoto = files.find((f) => f.fieldname === "photo");
+                if (mainPhoto) req.body.photo = mainPhoto.path;
+                const beforePhoto = files.find((f) => f.fieldname === "before_photo");
+                if (beforePhoto) req.body.before_photo = beforePhoto.path;
+
+                if (Array.isArray(req.body.tags)) {
+                    const tagIds = await Promise.all(
+                        req.body.tags.map(async (tagName: string) => {
+                            let tag = await Tag.findOne({ name: tagName });
+                            if (!tag) tag = await Tag.create({ name: tagName });
+                            return tag._id;
+                        }),
+                    );
+                    req.body.tags = tagIds;
+                }
+
+                if (Array.isArray(req.body.timeframe_photos)) {
+                    req.body.timeframe_photos.forEach((tp: any) => {
+                        const tfFile = files.find((f) => f.fieldname === tp.type);
+                        if (tfFile) tp.photo = tfFile.path;
+                    });
+                }
+            }
+            const { entry_price, stop_loss, take_profit } = req.body;
+
+            if (!stop_loss || !take_profit) {
+                req.body.rr = null;
+            } else {
+                const riskPerUnit = Math.abs(entry_price - stop_loss);
+                if (riskPerUnit === 0) throw new Error("Stop loss cannot be equal to entry price");
+                const rr = (take_profit - entry_price) / riskPerUnit;
+                req.body.rr = Number(rr.toFixed(2));
+            }
+
+            const trade = new ForexTrade(req.body);
+            const savedTrade = await trade.save();
+
+            if (savedTrade.portfolio_id && savedTrade.pl) {
+                const portfolio = await Portfolio.findOne({ id: savedTrade.portfolio_id });
+                if (portfolio) {
+                    portfolio.balance += savedTrade.pl;
+                    await portfolio.save();
+                }
+            }
+
+            res.status(201).json(savedTrade);
+        } catch (error: any) {
+            res.status(400).json({ message: error.message });
+        }
+    },
+);
+
+// Get all forex trades
+router.get("/", async (req: Request, res: Response) => {
+    try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 20;
+        const skip = (page - 1) * limit;
+        const query = buildTradeQuery(req.query);
+
+        const [trades, total] = await Promise.all([
+            ForexTrade.find(query)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .populate("tags"),
+            ForexTrade.countDocuments(query),
+        ]);
+
+        res.json({
+            trades,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit),
+            },
+        });
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Update forex trade
+router.put(
+    "/:id",
+    upload.any(),
+    parseTradeBody,
+    normalizeForexTradeBody,
+    updateTradeValidator,
+    validateRequest,
+    async (req: Request, res: Response) => {
+        try {
+            const trade = await ForexTrade.findById(req.params.id);
+            if (!trade) return res.status(404).json({ message: "Forex Trade not found" });
+
+            const mergedForValidation = { ...trade.toObject(), ...req.body };
+            const marketValidation = await validateTradeResourceMarketType(
+                mergedForValidation,
+                "forex",
+            );
+            if (!marketValidation.valid) {
+                return res.status(400).json({ message: marketValidation.message });
+            }
+
+            if (req.files && Array.isArray(req.files)) {
+                const files = req.files as Express.Multer.File[];
+                const mainPhoto = files.find((f) => f.fieldname === "photo");
+                if (mainPhoto) req.body.photo = mainPhoto.path;
+                const beforePhoto = files.find((f) => f.fieldname === "before_photo");
+                if (beforePhoto) req.body.before_photo = beforePhoto.path;
+
+                if (Array.isArray(req.body.tags)) {
+                    const tagIds = await Promise.all(
+                        req.body.tags.map(async (tagName: string) => {
+                            let tag = await Tag.findOne({ name: tagName });
+                            if (!tag) tag = await Tag.create({ name: tagName });
+                            return tag._id;
+                        }),
+                    );
+                    req.body.tags = tagIds;
+                }
+
+                if (Array.isArray(req.body.timeframe_photos)) {
+                    req.body.timeframe_photos.forEach((tp: any) => {
+                        const tfFile = files.find((f) => f.fieldname === tp.type);
+                        if (tfFile) tp.photo = tfFile.path;
+                    });
+                }
+            }
+
+            const oldPl = trade.pl || 0;
+            const oldPortfolioId = trade.portfolio_id;
+
+            Object.assign(trade, req.body);
+            const updatedTrade = await trade.save();
+
+            const newPl = updatedTrade.pl || 0;
+            const newPortfolioId = updatedTrade.portfolio_id;
+
+            if (oldPortfolioId === newPortfolioId) {
+                if (newPortfolioId && oldPl !== newPl) {
+                    const portfolio = await Portfolio.findOne({ id: newPortfolioId });
+                    if (portfolio) {
+                        portfolio.balance += newPl - oldPl;
+                        await portfolio.save();
+                    }
+                }
+            } else {
+                if (oldPortfolioId) {
+                    const oldPortfolio = await Portfolio.findOne({ id: oldPortfolioId });
+                    if (oldPortfolio) {
+                        oldPortfolio.balance -= oldPl;
+                        await oldPortfolio.save();
+                    }
+                }
+                if (newPortfolioId) {
+                    const newPortfolio = await Portfolio.findOne({ id: newPortfolioId });
+                    if (newPortfolio) {
+                        newPortfolio.balance += newPl;
+                        await newPortfolio.save();
+                    }
+                }
+            }
+
+            res.json(updatedTrade);
+        } catch (error: any) {
+            res.status(400).json({ message: error.message });
+        }
+    },
+);
+
+// Delete forex trade
+router.delete("/:id", async (req: Request, res: Response) => {
+    try {
+        const trade = await ForexTrade.findById(req.params.id);
+        if (!trade) return res.status(404).json({ message: "Forex Trade not found" });
+
+        if (trade.portfolio_id && trade.pl) {
+            const portfolio = await Portfolio.findOne({ id: trade.portfolio_id });
+            if (portfolio) {
+                portfolio.balance -= trade.pl;
+                await portfolio.save();
+            }
+        }
+
+        await ForexTrade.findByIdAndDelete(req.params.id);
+        res.json({ message: "Forex Trade deleted" });
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Deep Dive Analysis Endpoint
+router.post("/deep-dive", async (req: Request, res: Response) => {
+    try {
+        const { filters } = req.body;
+        const query: any = {};
+
+        if (filters && Array.isArray(filters)) {
+            filters.forEach((filter: any) => {
+                const { field, operator, value } = filter;
+                if (value === undefined || value === null || value === "") return;
+
+                switch (operator) {
+                    case "eq":
+                        query[field] = value;
+                        break;
+                    case "neq":
+                        query[field] = { $ne: value };
+                        break;
+                    case "gt":
+                        query[field] = { $gt: Number(value) };
+                        break;
+                    case "gte":
+                        query[field] = { $gte: Number(value) };
+                        break;
+                    case "lt":
+                        query[field] = { $lt: Number(value) };
+                        break;
+                    case "lte":
+                        query[field] = { $lte: Number(value) };
+                        break;
+                    case "contains":
+                        query[field] = { $regex: value, $options: "i" };
+                        break;
+                    case "in":
+                        const inValues = Array.isArray(value) ? value : String(value).split(",");
+                        if (field === "tags") {
+                            query[field] = { $in: inValues.map((v: string) => new mongoose.Types.ObjectId(v)) };
+                        } else {
+                            query[field] = { $in: inValues };
+                        }
+                        break;
+                    case "nin":
+                        const ninValues = Array.isArray(value) ? value : String(value).split(",");
+                        if (field === "tags") {
+                            query[field] = { $nin: ninValues.map((v: string) => new mongoose.Types.ObjectId(v)) };
+                        } else {
+                            query[field] = { $nin: ninValues };
+                        }
+                        break;
+                    case "exists":
+                        query[field] = { $exists: value === "true" || value === true };
+                        break;
+                }
+            });
+        }
+
+        const trades = await ForexTrade.find(query).sort({ trade_date: 1 }).lean();
+
+        let totalPl = 0;
+        let totalRr = 0;
+        let winCount = 0;
+        let lossCount = 0;
+        let totalReturns = 0;
+        const equityCurve: { date: Date; value: number }[] = [];
+        let cumulativePl = 0;
+
+        trades.forEach((trade: any) => {
+            const pl = trade.pl || 0;
+            const rr = trade.actual_rr || 0;
+            const returns = trade.returns || 0;
+
+            totalPl += pl;
+            totalRr += rr;
+            totalReturns += returns;
+            cumulativePl += pl;
+
+            if (trade.outcome === "win") winCount++;
+            if (trade.outcome === "loss") lossCount++;
+
+            equityCurve.push({
+                date: trade.trade_date,
+                value: cumulativePl
+            });
+        });
+
+        const totalTrades = trades.length;
+        const winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0;
+        const avgRr = totalTrades > 0 ? totalRr / totalTrades : 0;
+
+        res.json({
+            trades,
+            stats: {
+                totalTrades,
+                winRate: Number(winRate.toFixed(2)),
+                totalPl: Number(totalPl.toFixed(2)),
+                avgRr: Number(avgRr.toFixed(2)),
+                totalReturns: Number(totalReturns.toFixed(2)),
+                winCount,
+                lossCount
+            },
+            equityCurve
+        });
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+export default router;

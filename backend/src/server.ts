@@ -7,6 +7,7 @@ import strategyRoutes from "./routes/strategyRoutes";
 import symbolRoutes from "./routes/symbolRoutes";
 import tagRoutes from "./routes/tagRoutes";
 import tradeRoutes from "./routes/tradeRoutes";
+import forexTradeRoutes from "./routes/forexTradeRoutes";
 import graphRouter from "./routes/graphRouter";
 import integrationRoutes from "./routes/integrationRoutes";
 import os from "node:os";
@@ -53,6 +54,7 @@ app.use((req, res, next) => {
 
 app.use("/api/portfolios", portfolioRoutes);
 app.use("/api/trades", tradeRoutes);
+app.use("/api/forex/trades", forexTradeRoutes);
 app.use("/api/strategies", strategyRoutes);
 app.use("/api/symbols", symbolRoutes);
 app.use("/api/tags", tagRoutes);

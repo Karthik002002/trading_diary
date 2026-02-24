@@ -1,23 +1,34 @@
-import { Button, Form, Input, Modal } from "antd";
-import { useState } from "react";
+import { Button, Form, Input, Modal, Select } from "antd";
+import { useEffect, useState } from "react";
 import { useCreateSymbol } from "../../hooks/useResources";
+import type { MarketType } from "../../types/api";
 
 interface CreateSymbolModalProps {
 	isOpen: boolean;
 	onClose: () => void;
+	marketType?: MarketType;
 	onSuccess?: (newSymbol: { id: number; symbol: string; name: string }) => void;
 }
 
 export const CreateSymbolModal: React.FC<CreateSymbolModalProps> = ({
 	isOpen,
 	onClose,
+	marketType = "equity",
 	onSuccess,
 }) => {
 	const createMutation = useCreateSymbol();
-	const [formData, setFormData] = useState({ symbol: "", name: "" });
+	const [formData, setFormData] = useState({
+		symbol: "",
+		name: "",
+		market_type: marketType,
+	});
+
+	useEffect(() => {
+		setFormData((prev) => ({ ...prev, market_type: marketType }));
+	}, [marketType]);
 
 	const handleClose = () => {
-		setFormData({ symbol: "", name: "" });
+		setFormData({ symbol: "", name: "", market_type: marketType });
 		onClose();
 	};
 
@@ -80,6 +91,21 @@ export const CreateSymbolModal: React.FC<CreateSymbolModalProps> = ({
 								handleSubmit();
 							}
 						}}
+					/>
+				</Form.Item>
+				<Form.Item label="Market Type" required>
+					<Select
+						value={formData.market_type}
+						onChange={(value) =>
+							setFormData({
+								...formData,
+								market_type: value as MarketType,
+							})
+						}
+						options={[
+							{ label: "Equity", value: "equity" },
+							{ label: "Forex", value: "forex" },
+						]}
 					/>
 				</Form.Item>
 			</Form>

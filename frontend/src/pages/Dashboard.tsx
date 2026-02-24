@@ -12,7 +12,6 @@ import {
 	usePerformanceMetrics,
 	useStrategies,
 	useSymbols,
-	useUpdateStrategy,
 } from "../hooks/useTrades";
 import { usePreferenceStore } from "../store/preferenceStore";
 import { useFilterStore } from "../store/useFilterStore";
@@ -24,7 +23,7 @@ const Dashboard: React.FC = () => {
 	const navigate = useNavigate();
 	const setStoreFilters = useFilterStore((state) => state.setFilters);
 	const { dashboardDisplayState } = usePreferenceStore();
-	const updateStrategyMutation = useUpdateStrategy();
+
 	const filters = {
 		strategy_id: search.strategy_id,
 		outcome: search.outcome,
@@ -33,6 +32,7 @@ const Dashboard: React.FC = () => {
 		portfolio_id: search.portfolio_id,
 		status: search.status,
 		tags: search.tags,
+		trade_type: search.trade_type || "equity",
 	};
 
 	// Sync Zustand store with URL
@@ -46,6 +46,7 @@ const Dashboard: React.FC = () => {
 		filters.portfolio_id,
 		filters.status,
 		filters.tags,
+		filters.trade_type,
 		setStoreFilters,
 	]);
 

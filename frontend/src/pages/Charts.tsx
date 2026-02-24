@@ -114,6 +114,7 @@ const Charts: React.FC = () => {
 		tags: search.tags,
 		from: search.from,
 		to: search.to,
+		trade_type: search.trade_type as "equity" | "forex" | undefined,
 	};
 
 	useEffect(() => {

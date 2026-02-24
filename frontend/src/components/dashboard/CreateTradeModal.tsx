@@ -42,6 +42,7 @@ import { usePreferenceStore } from "../../store/preferenceStore";
 import { CreateSymbolModal } from "../settings/CreateSymbolModal";
 import { type TradeFormValues, tradeSchema } from "./schema";
 import { useHotkeys } from "react-hotkeys-hook";
+import { useMarketTypeQueryParam } from "../../hooks/useMarketTypeQueryParam";
 
 interface Props {
 	isOpen: boolean;
@@ -79,9 +80,9 @@ const CreateTradeModal: React.FC<Props> = ({
 	} = useForm({
 		resolver: zodResolver(tradeSchema),
 		defaultValues: {
-			strategy_id: 1,
-			portfolio_id: null,
-			symbol_id: 1,
+			strategy_id: strategies?.[0].id ?? 1,
+			portfolio_id: portfolios?.[0].id ?? 1,
+			symbol_id: symbols?.[0].id ?? 1,
 			quantity: 10,
 			confidence_level: 8,
 			type: "buy",
@@ -102,11 +103,27 @@ const CreateTradeModal: React.FC<Props> = ({
 			post_trade_thoughts: "",
 			tags: [],
 			rule_violations: [],
-			timeframe_photos: [{ type: "30m", photo: null }],
+			timeframe_photos: [
+				{ type: "1h", photo: null },
+				{ type: "4h", photo: null },
+			],
 			exits: [],
 			status: "NIN", // Default to completed
+			trade_type: "equity",
 		},
 	});
+
+	const { marketType } = useMarketTypeQueryParam();
+	const resolvedEditTradeType =
+		(tradeToEdit?.trade_type as "equity" | "forex" | undefined) ||
+		(marketType as "equity" | "forex" | undefined) ||
+		"equity";
+
+	useEffect(() => {
+		if (isOpen && !tradeToEdit) {
+			setValue("trade_type", marketType || "equity");
+		}
+	}, [isOpen, tradeToEdit, marketType, setValue]);
 
 	const { fields, append, remove } = useFieldArray({
 		control,
@@ -125,16 +142,22 @@ const CreateTradeModal: React.FC<Props> = ({
 	const exit_price = Number(useWatch({ control, name: "exit_price" }));
 	const stop_loss = Number(useWatch({ control, name: "stop_loss" }));
 	const entry_price = Number(useWatch({ control, name: "entry_price" }));
+	const selectedTradeType = useWatch({ control, name: "trade_type" });
 	const quantity = Number(useWatch({ control, name: "quantity" }));
 	const type = useWatch({ control, name: "type" });
 	const exits = useWatch({ control, name: "exits" }) || [];
+	const isForexTrade = selectedTradeType === "forex";
+
+	const filteredStrategies = strategies ?? [];
+	const filteredPortfolios = portfolios ?? [];
+	const filteredSymbols = symbols ?? [];
 
 	const totalExitQuantity = useMemo(() => {
 		return exits.reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
 	}, [exits]);
 
 	useEffect(() => {
-		if (totalExitQuantity > quantity) {
+		if (totalExitQuantity - quantity > 1e-8) {
 			message.error({
 				content: "Total exit quantity cannot exceed entry quantity",
 				key: "exit-qty-error",
@@ -194,7 +217,7 @@ const CreateTradeModal: React.FC<Props> = ({
 				},
 				500,
 			),
-		[maxLossNumber, portfolios],
+		[maxLossNumber, portfolios, currency],
 	);
 
 	useEffect(() => {
@@ -264,29 +287,70 @@ const CreateTradeModal: React.FC<Props> = ({
 				timeframe_photos:
 					tradeToEdit.timeframe_photos?.length > 0
 						? tradeToEdit.timeframe_photos.map((tp) => ({
-							type: tp.type,
-							photo: tp.photo,
-						}))
+								type: tp.type,
+								photo: tp.photo,
+							}))
 						: [{ type: "4h", photo: null }],
 				exits:
 					tradeToEdit.exits && tradeToEdit.exits?.length > 0
 						? tradeToEdit.exits.map((e: any) => ({
-							quantity: e.quantity,
-							price: e.price,
-						}))
+								quantity: e.quantity,
+								price: e.price,
+							}))
 						: [],
 				status: (tradeToEdit as any).status ?? "NIN",
+				trade_type: resolvedEditTradeType,
 			});
 		}
 
 		if (!tradeToEdit && isOpen) {
 			reset();
 		}
-	}, [isOpen, tradeToEdit, reset]);
+	}, [isOpen, tradeToEdit, reset, resolvedEditTradeType]);
 
 	const onSubmit = (values: TradeFormValues) => {
+		const isForex = values.trade_type === "forex";
+		const normalizedValues: TradeFormValues = {
+			...values,
+			quantity: isForex
+				? Number(Number(values.quantity).toFixed(2))
+				: values.quantity,
+			exits: values.exits?.map((exit) => ({
+				...exit,
+				quantity: isForex
+					? Number(Number(exit.quantity).toFixed(2))
+					: exit.quantity,
+			})),
+		};
+
+		if (isForex) {
+			if (normalizedValues.quantity < 0.01 || normalizedValues.quantity > 10) {
+				message.error("Forex lot size must be between 0.01 and 10");
+				return;
+			}
+			const hasInvalidExitLot = (normalizedValues.exits ?? []).some(
+				(exit) => exit.quantity < 0.01 || exit.quantity > 10,
+			);
+			if (hasInvalidExitLot) {
+				message.error("Each forex exit lot size must be between 0.01 and 10");
+				return;
+			}
+		}
+
+		const normalizedTotalExitQuantity = (normalizedValues.exits ?? []).reduce(
+			(acc, curr) => acc + (Number(curr.quantity) || 0),
+			0,
+		);
+		if (
+			normalizedTotalExitQuantity - Number(normalizedValues.quantity) >
+			1e-8
+		) {
+			message.error("Total exit quantity cannot exceed entry quantity");
+			return;
+		}
+
 		const data = new FormData();
-		console.log(data, values);
+		console.log(data, normalizedValues);
 
 		// Skip these keys - they need special handling
 		const skipKeys = [
@@ -297,51 +361,57 @@ const CreateTradeModal: React.FC<Props> = ({
 			"exits",
 		];
 
-		Object.entries(values).forEach(([key, value]) => {
+		Object.entries(normalizedValues).forEach(([key, value]) => {
 			if (skipKeys.includes(key)) return;
 
 			if (value !== undefined && value !== null) {
 				data.append(key, String(value));
 			}
 		});
+		if (isForex) {
+			data.append("contract_size", "100000");
+		}
 
 		// Handle arrays
-		data.append("tags", JSON.stringify(values.tags ?? []));
+		data.append("tags", JSON.stringify(normalizedValues.tags ?? []));
 		data.append(
 			"rule_violations",
-			JSON.stringify(values.rule_violations ?? []),
+			JSON.stringify(normalizedValues.rule_violations ?? []),
 		);
-		data.append("exits", JSON.stringify(values.exits ?? []));
+		data.append("exits", JSON.stringify(normalizedValues.exits ?? []));
 
 		// Handle main photo - support both File and Blob (from clipboard paste)
-		if (values.photo instanceof File || values.photo instanceof Blob) {
+		if (
+			normalizedValues.photo instanceof File ||
+			normalizedValues.photo instanceof Blob
+		) {
 			data.append(
 				"photo",
-				values.photo,
-				values.photo instanceof File
-					? values.photo.name
+				normalizedValues.photo,
+				normalizedValues.photo instanceof File
+					? normalizedValues.photo.name
 					: "clipboard-image.png",
 			);
 		}
 		if (
-			values.before_photo instanceof File ||
-			values.before_photo instanceof Blob
+			normalizedValues.before_photo instanceof File ||
+			normalizedValues.before_photo instanceof Blob
 		) {
 			data.append(
 				"before_photo",
-				values.before_photo,
-				values.before_photo instanceof File
-					? values.before_photo.name
+				normalizedValues.before_photo,
+				normalizedValues.before_photo instanceof File
+					? normalizedValues.before_photo.name
 					: "before-clipboard-image.png",
 			);
 		}
 
 		// Handle timeframe photos - support both File and Blob
 		// Only include entries that have an actual photo (new upload or existing URL)
-		if (Array.isArray(values.timeframe_photos)) {
+		if (Array.isArray(normalizedValues.timeframe_photos)) {
 			const photosForBody: { type: string; photo: string }[] = [];
 
-			values.timeframe_photos.forEach((tp) => {
+			normalizedValues.timeframe_photos.forEach((tp) => {
 				if (tp.photo instanceof File || tp.photo instanceof Blob) {
 					// New file upload
 					const fileName =
@@ -360,9 +430,15 @@ const CreateTradeModal: React.FC<Props> = ({
 			data.append("timeframe_photos", JSON.stringify(photosForBody));
 		}
 
+		const submitTradeType =
+			(normalizedValues.trade_type as "equity" | "forex" | undefined) ||
+			(tradeToEdit?.trade_type as "equity" | "forex" | undefined) ||
+			(marketType as "equity" | "forex" | undefined) ||
+			"equity";
+
 		if (tradeToEdit) {
 			updateMutation.mutate(
-				{ id: tradeToEdit._id, data },
+				{ id: tradeToEdit._id, data, tradeType: submitTradeType },
 				{
 					onSuccess: () => {
 						queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
@@ -372,13 +448,16 @@ const CreateTradeModal: React.FC<Props> = ({
 				},
 			);
 		} else {
-			createMutation.mutate(data, {
-				onSuccess: () => {
-					queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
-					queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
-					onClose();
+			createMutation.mutate(
+				{ data, tradeType: submitTradeType },
+				{
+					onSuccess: () => {
+						queryClient.invalidateQueries({ queryKey: ["pnlCalendar"] });
+						queryClient.invalidateQueries({ queryKey: ["strategy-limits"] });
+						onClose();
+					},
 				},
-			});
+			);
 		}
 	};
 
@@ -413,7 +492,7 @@ const CreateTradeModal: React.FC<Props> = ({
 				: typeof option.label === "number"
 					? option.label.toString()
 					: // ReactNode case (e.g. <span>...</span>)
-					((option.label as any)?.props?.children?.toString?.() ?? "");
+						((option.label as any)?.props?.children?.toString?.() ?? "");
 
 		const valueText = option.value?.toString?.() ?? "";
 
@@ -546,7 +625,7 @@ const CreateTradeModal: React.FC<Props> = ({
 													showSearch
 													optionFilterProp="label"
 													options={
-														strategies?.map((val: any) => ({
+														filteredStrategies?.map((val: any) => ({
 															label: val.name,
 															value: val.id,
 														})) ?? []
@@ -572,7 +651,7 @@ const CreateTradeModal: React.FC<Props> = ({
 													allowClear
 													optionFilterProp="label"
 													options={
-														portfolios?.map((val: any) => ({
+														filteredPortfolios?.map((val: any) => ({
 															label: val.name,
 															value: val.id,
 														})) ?? []
@@ -597,7 +676,7 @@ const CreateTradeModal: React.FC<Props> = ({
 														{...field}
 														placeholder="Select symbol"
 														options={[
-															...(symbols?.map((val) => ({
+															...(filteredSymbols?.map((val) => ({
 																label: val.symbol,
 																value: val.id,
 															})) ?? []),
@@ -624,6 +703,7 @@ const CreateTradeModal: React.FC<Props> = ({
 													/>
 													<CreateSymbolModal
 														isOpen={isSymbolModalOpen}
+														marketType={selectedTradeType}
 														onClose={() => {
 															setIsSymbolModalOpen(false);
 															setPendingSymbolFieldChange(null);
@@ -668,12 +748,35 @@ const CreateTradeModal: React.FC<Props> = ({
 										/>
 									</Form.Item>
 
-									<Form.Item label="Quantity" style={{ gridColumn: "span 1" }}>
+									<Form.Item label="Market" style={{ gridColumn: "span 1" }}>
+										<Controller
+											control={control}
+											name="trade_type"
+											render={({ field }) => (
+												<Select {...field}>
+													<Select.Option value="equity">Equity</Select.Option>
+													<Select.Option value="forex">Forex</Select.Option>
+												</Select>
+											)}
+										/>
+									</Form.Item>
+
+									<Form.Item
+										label={isForexTrade ? "Lot Size" : "Quantity"}
+										style={{ gridColumn: "span 1" }}
+									>
 										<Controller
 											control={control}
 											name="quantity"
 											render={({ field }) => (
-												<InputNumber {...field} className="!w-full" />
+												<InputNumber
+													{...field}
+													className="!w-full"
+													min={isForexTrade ? 0.01 : 0}
+													max={isForexTrade ? 10 : undefined}
+													step={isForexTrade ? 0.01 : 1}
+													precision={isForexTrade ? 2 : 0}
+												/>
 											)}
 										/>
 									</Form.Item>
@@ -897,7 +1000,10 @@ const CreateTradeModal: React.FC<Props> = ({
 															<InputNumber
 																{...field}
 																className="w-full"
-																min={0}
+																min={isForexTrade ? 0.01 : 0}
+																max={isForexTrade ? 10 : undefined}
+																step={isForexTrade ? 0.01 : 1}
+																precision={isForexTrade ? 2 : 0}
 															/>
 														)}
 													/>
@@ -927,7 +1033,7 @@ const CreateTradeModal: React.FC<Props> = ({
 											type="dashed"
 											onClick={() =>
 												appendExit({
-													quantity: 0,
+													quantity: isForexTrade ? 0.01 : 0,
 													price: 0,
 												})
 											}

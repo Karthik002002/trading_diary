@@ -1,191 +1,215 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchStrategies, fetchSymbols, fetchTags } from "../api/client";
+import {
+  fetchStrategiesByMarket,
+  fetchSymbols,
+  fetchTags,
+} from "../api/client";
+import { useMarketTypeQueryParam } from "./useMarketTypeQueryParam";
+import type { Portfolio } from "../types/api";
 
 // --- Tags ---
 export const useTags = (search?: string) =>
-	useQuery({
-		queryKey: ["tags", search],
-		queryFn: () => fetchTags(search),
-	});
+  useQuery({
+    queryKey: ["tags", search],
+    queryFn: () => fetchTags(search),
+  });
 
 const BASE_URL = "http://localhost:5000/api";
 
 // --- Generic Helper ---
-async function fetchData(endpoint: string) {
-	const response = await fetch(`${BASE_URL}/${endpoint}`);
-	if (!response.ok) throw new Error(`Failed to fetch ${endpoint}`);
-	return response.json();
+async function fetchData(endpoint: string, params?: Record<string, string>) {
+  const search = new URLSearchParams(params ?? {}).toString();
+  const response = await fetch(
+    `${BASE_URL}/${endpoint}${search ? `?${search}` : ""}`,
+  );
+  if (!response.ok) throw new Error(`Failed to fetch ${endpoint}`);
+  return response.json();
 }
 
 async function createItem(endpoint: string, data: any) {
-	const response = await fetch(`${BASE_URL}/${endpoint}`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(data),
-	});
-	if (!response.ok) {
-		const error = await response.json();
-		throw new Error(error.message || `Failed to create item in ${endpoint}`);
-	}
-	return response.json();
+  const response = await fetch(`${BASE_URL}/${endpoint}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || `Failed to create item in ${endpoint}`);
+  }
+  return response.json();
 }
 
 async function updateItem(endpoint: string, id: number, data: any) {
-	const response = await fetch(`${BASE_URL}/${endpoint}/${id}`, {
-		method: "PUT",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(data),
-	});
-	if (!response.ok) {
-		const error = await response.json();
-		throw new Error(error.message || `Failed to update item in ${endpoint}`);
-	}
-	return response.json();
+  const response = await fetch(`${BASE_URL}/${endpoint}/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || `Failed to update item in ${endpoint}`);
+  }
+  return response.json();
 }
 
 async function deleteItem(endpoint: string, id: number) {
-	const response = await fetch(`${BASE_URL}/${endpoint}/${id}`, {
-		method: "DELETE",
-	});
-	if (!response.ok) throw new Error(`Failed to delete item in ${endpoint}`);
-	return response.json();
+  const response = await fetch(`${BASE_URL}/${endpoint}/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error(`Failed to delete item in ${endpoint}`);
+  return response.json();
 }
 
 // --- Strategies ---
-export const useStrategies = () =>
-	useQuery({ queryKey: ["strategies"], queryFn: fetchStrategies });
+export const useStrategies = () => {
+  const { marketType } = useMarketTypeQueryParam();
+  return useQuery({
+    queryKey: ["strategies", marketType],
+    queryFn: () => fetchStrategiesByMarket(marketType),
+  });
+};
 
 export const useCreateStrategy = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: (data: any) => createItem("strategies", data),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: ["strategies"] }),
-	});
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => createItem("strategies", data),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["strategies"] }),
+  });
 };
 
 export const useUpdateStrategy = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: ({ id, data }: { id: number; data: any }) =>
-			updateItem("strategies", id, data),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: ["strategies"] }),
-	});
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      updateItem("strategies", id, data),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["strategies"] }),
+  });
 };
 
 export const useDeleteStrategy = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: (id: number) => deleteItem("strategies", id),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: ["strategies"] }),
-	});
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteItem("strategies", id),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["strategies"] }),
+  });
 };
 
-export const useStrategyLimits = () =>
-	useQuery({
-		queryKey: ["strategy-limits"],
-		queryFn: () => fetchData("strategies/status/limits"),
-		refetchInterval: 10000, // Refetch every 10 seconds
-	});
+export const useStrategyLimits = () => {
+  const { marketType } = useMarketTypeQueryParam();
+  return useQuery({
+    queryKey: ["strategy-limits", marketType],
+    queryFn: () =>
+      fetchData("strategies/status/limits", { market_type: marketType }),
+    refetchInterval: 10000, // Refetch every 10 seconds
+  });
+};
 
 // --- Symbols ---
-export const useSymbols = () =>
-	useQuery({ queryKey: ["symbols"], queryFn: fetchSymbols });
+export const useSymbols = () => {
+  const { marketType } = useMarketTypeQueryParam();
+  return useQuery({
+    queryKey: ["symbols", marketType],
+    queryFn: () => fetchSymbols(marketType),
+  });
+};
 
 export const useCreateSymbol = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: (data: any) => createItem("symbols", data),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["symbols"] }),
-	});
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => createItem("symbols", data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["symbols"] }),
+  });
 };
 
 export const useUpdateSymbol = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: ({ id, data }: { id: number; data: any }) =>
-			updateItem("symbols", id, data),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["symbols"] }),
-	});
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      updateItem("symbols", id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["symbols"] }),
+  });
 };
 
 export const useDeleteSymbol = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: (id: number) => deleteItem("symbols", id),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["symbols"] }),
-	});
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteItem("symbols", id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["symbols"] }),
+  });
 };
 
 // --- Portfolios ---
-export const usePortfolios = () =>
-	useQuery({
-		queryKey: ["portfolios"],
-		queryFn: () => fetchData("portfolios"),
-	});
+export const usePortfolios = () => {
+  const { marketType } = useMarketTypeQueryParam();
+  return useQuery<Portfolio[]>({
+    queryKey: ["portfolios", marketType],
+    queryFn: () => fetchData("portfolios", { market_type: marketType }),
+  });
+};
 
 export const useCreatePortfolio = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: (data: any) => createItem("portfolios", data),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: ["portfolios"] }),
-	});
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => createItem("portfolios", data),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["portfolios"] }),
+  });
 };
 
 export const useUpdatePortfolio = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: ({ id, data }: { id: number; data: any }) =>
-			updateItem("portfolios", id, data),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: ["portfolios"] }),
-	});
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      updateItem("portfolios", id, data),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["portfolios"] }),
+  });
 };
 
 export const useDeletePortfolio = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: (id: number) => deleteItem("portfolios", id),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: ["portfolios"] }),
-	});
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteItem("portfolios", id),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["portfolios"] }),
+  });
 };
 
 // --- Portfolio Transactions ---
 export const usePortfolioTransactions = (portfolioId: number | null) =>
-	useQuery({
-		queryKey: ["portfolio-transactions", portfolioId],
-		queryFn: () => fetchData(`portfolios/${portfolioId}/transactions`),
-		enabled: !!portfolioId,
-	});
+  useQuery({
+    queryKey: ["portfolio-transactions", portfolioId],
+    queryFn: () => fetchData(`portfolios/${portfolioId}/transactions`),
+    enabled: !!portfolioId,
+  });
 
 export const usePortfolioPayin = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: ({ id, data }: { id: number; data: any }) =>
-			createItem(`portfolios/${id}/payin`, data),
-		onSuccess: (_, { id }) => {
-			queryClient.invalidateQueries({ queryKey: ["portfolios"] });
-			queryClient.invalidateQueries({
-				queryKey: ["portfolio-transactions", id],
-			});
-		},
-	});
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      createItem(`portfolios/${id}/payin`, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["portfolios"] });
+      queryClient.invalidateQueries({
+        queryKey: ["portfolio-transactions", id],
+      });
+    },
+  });
 };
 
 export const usePortfolioPayout = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: ({ id, data }: { id: number; data: any }) =>
-			createItem(`portfolios/${id}/payout`, data),
-		onSuccess: (_, { id }) => {
-			queryClient.invalidateQueries({ queryKey: ["portfolios"] });
-			queryClient.invalidateQueries({
-				queryKey: ["portfolio-transactions", id],
-			});
-		},
-	});
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      createItem(`portfolios/${id}/payout`, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["portfolios"] });
+      queryClient.invalidateQueries({
+        queryKey: ["portfolio-transactions", id],
+      });
+    },
+  });
 };

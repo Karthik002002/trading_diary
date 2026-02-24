@@ -3,6 +3,7 @@ import mongoose, { type Document, Schema } from "mongoose";
 export interface IStrategy extends Document {
 	id: number;
 	name: string;
+	market_type: "equity" | "forex";
 	description: string | null;
 	monthlyLossLimit: number | null;
 	weeklyLossLimit: number | null;
@@ -14,6 +15,12 @@ const StrategySchema: Schema = new Schema(
 	{
 		id: { type: Number, unique: true },
 		name: { type: String, required: true },
+		market_type: {
+			type: String,
+			enum: ["equity", "forex"],
+			default: "equity",
+			required: true,
+		},
 		description: { type: String, required: false, default: null },
 		monthlyLossLimit: { type: Number, required: false, default: null },
 		weeklyLossLimit: { type: Number, required: false, default: null },

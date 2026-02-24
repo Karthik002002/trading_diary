@@ -9,6 +9,18 @@ import PortfolioTransaction from "../models/portfolioTransaction";
 
 const router = express.Router();
 
+const buildMarketTypeFilter = (marketType?: string) => {
+	if (marketType === "forex") {
+		return { market_type: "forex" };
+	}
+	if (marketType === "equity") {
+		return {
+			$or: [{ market_type: "equity" }, { market_type: { $exists: false } }],
+		};
+	}
+	return {};
+};
+
 // Create new portfolio
 router.post(
 	"/",
@@ -28,7 +40,8 @@ router.post(
 // Get all portfolios
 router.get("/", async (req: Request, res: Response) => {
 	try {
-		const portfolios = await Portfolio.find();
+		const marketType = req.query.market_type as string | undefined;
+		const portfolios = await Portfolio.find(buildMarketTypeFilter(marketType));
 		res.json(portfolios);
 	} catch (error: any) {
 		res.status(500).json({ message: error.message });
