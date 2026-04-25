@@ -14,6 +14,8 @@ import { ListItemNode, ListNode } from "@lexical/list"
 import { CodeHighlightNode, CodeNode } from "@lexical/code"
 import { AutoLinkNode, LinkNode } from "@lexical/link"
 import ToolbarPlugin from './ToolbarPlugin'
+import ImagesPlugin from './ImagesPlugin'
+import { ImageNode } from './ImageNode'
 import './editor.css'
 
 const theme = {
@@ -114,6 +116,7 @@ export default function StrategyEditor({ initialContent, onSave, readOnly = fals
             TableRowNode,
             AutoLinkNode,
             LinkNode,
+            ImageNode,
         ],
         onError(error: Error) {
             console.error(error)
@@ -132,6 +135,7 @@ export default function StrategyEditor({ initialContent, onSave, readOnly = fals
                 <span style={{ fontWeight: 600, color: '#444' }}>Strategy Description</span>
                 {!readOnly && (
                     <button
+                        type="button"
                         onClick={() => setEditable(e => !e)}
                         style={{
                             padding: '4px 12px',
@@ -162,6 +166,7 @@ export default function StrategyEditor({ initialContent, onSave, readOnly = fals
                     <HistoryPlugin />
                     <ListPlugin />
                     <LinkPlugin />
+                    <ImagesPlugin />
                     {editable && <OnChangePlugin onChange={handleChange} />}
                 </div>
             </LexicalComposer>

@@ -17,6 +17,46 @@ const StrategyLimitMonitor = () => {
         if (!limits) return;
 
         limits.forEach((s: any) => {
+            // Daily Check
+            if (s.dailyLossLimit) {
+                const ratio = s.currentDailyLoss / s.dailyLossLimit;
+                const key = `${s.strategyId}-${s.portfolioId}-daily`;
+
+                if (ratio >= 1) {
+                    // Exceeded
+                    setNotifiedExceeded(prev => prev.has(key) ? prev : new Set(prev).add(key));
+                    setNotifiedWarning(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
+                } else if (ratio >= 0.9) {
+                    // Warning
+                    setNotifiedWarning(prev => prev.has(key) ? prev : new Set(prev).add(key));
+                    setNotifiedExceeded(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
+                } else {
+                    // Neither
+                    setNotifiedExceeded(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
+                    setNotifiedWarning(prev => {
+                        if (!prev.has(key)) return prev;
+                        const next = new Set(prev);
+                        next.delete(key);
+                        return next;
+                    });
+                }
+            }
+
             // Weekly Check
             if (s.weeklyLossLimit) {
                 const ratio = s.currentWeeklyLoss / s.weeklyLossLimit;
@@ -119,10 +159,11 @@ const StrategyLimitMonitor = () => {
     const alertsCount = useMemo(() => {
         if (!limits) return 0;
         return limits.filter((s: any) => {
+            const dRatio = s.dailyLossLimit ? s.currentDailyLoss / s.dailyLossLimit : 0;
             const wRatio = s.weeklyLossLimit ? s.currentWeeklyLoss / s.weeklyLossLimit : 0;
             const mRatio = s.monthlyLossLimit ? s.currentMonthlyLoss / s.monthlyLossLimit : 0;
             const cExceeded = s.consecutiveLossLimit ? s.currentConsecutiveLosses >= s.consecutiveLossLimit : false;
-            return wRatio >= 0.9 || mRatio >= 0.9 || cExceeded;
+            return dRatio >= 0.9 || wRatio >= 0.9 || mRatio >= 0.9 || cExceeded;
         }).length;
     }, [limits]);
 
@@ -147,6 +188,7 @@ const StrategyLimitMonitor = () => {
                 <List
                     dataSource={limits || []}
                     renderItem={(s: any) => {
+                        const dRatio = s.dailyLossLimit ? s.currentDailyLoss / s.dailyLossLimit : 0;
                         const wRatio = s.weeklyLossLimit ? s.currentWeeklyLoss / s.weeklyLossLimit : 0;
                         const mRatio = s.monthlyLossLimit ? s.currentMonthlyLoss / s.monthlyLossLimit : 0;
 
@@ -156,6 +198,19 @@ const StrategyLimitMonitor = () => {
                                     <Typography.Title level={5}>{s.strategyName} <Text type="secondary" style={{ fontSize: '14px' }}>( {s.portfolioName} )</Text></Typography.Title>
 
                                     <div className="mt-2 space-y-2">
+                                        {s.dailyLossLimit && (
+                                            <div className="flex justify-between items-center">
+                                                <span>Daily:</span>
+                                                <div>
+                                                    <Text delete={dRatio >= 1} type={dRatio >= 1 ? "danger" : (dRatio >= 0.9 ? "warning" : "secondary")}>
+                                                        {currency}{s.currentDailyLoss} / {currency}{s.dailyLossLimit}
+                                                    </Text>
+                                                    {dRatio >= 1 && <Tag color="error" className="ml-2">EXCEEDED</Tag>}
+                                                    {dRatio >= 0.9 && dRatio < 1 && <Tag color="warning" className="ml-2">90%+</Tag>}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {s.weeklyLossLimit && (
                                             <div className="flex justify-between items-center">
                                                 <span>Weekly:</span>
@@ -192,7 +247,7 @@ const StrategyLimitMonitor = () => {
                                                 </div>
                                             </div>
                                         )}
-                                        {!s.weeklyLossLimit && !s.monthlyLossLimit && !s.consecutiveLossLimit && (
+                                        {!s.dailyLossLimit && !s.weeklyLossLimit && !s.monthlyLossLimit && !s.consecutiveLossLimit && (
                                             <Text type="secondary" italic>No limits set</Text>
                                         )}
                                     </div>

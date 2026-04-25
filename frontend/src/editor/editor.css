@@ -13,6 +13,8 @@
 .editor-inner {
   background: #fff;
   position: relative;
+  max-height: 54vh;
+  overflow: auto;
 }
 
 .editor-input {
@@ -155,4 +157,11 @@
   color: #24292e;
   font-weight: 700;
   margin: 10px 0 12px;
+}
+
+.editor-image {
+  max-width: 100%;
+  border-radius: 4px;
+  margin: 12px 0;
+  display: block;
 }

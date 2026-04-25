@@ -4,23 +4,31 @@ import {
 	createRouter,
 } from "@tanstack/react-router";
 import Layout from "./components/Layout";
-import Dashboard from "./pages/Dashboard";
-import Settings from "./pages/Settings";
+import AccountabilityFeed from "./pages/accountability/Feed";
+import Onboarding from "./pages/accountability/Onboarding";
+import WeeklySummaryPage from "./pages/accountability/WeeklySummary";
 import Charts from "./pages/Charts";
-import Integrations from "./pages/Integrations";
-import Goals from "./pages/Goals";
+import Dashboard from "./pages/Dashboard";
 import DeepDive from "./pages/DeepDive";
+import CheckIn from "./pages/discipline/CheckIn";
+import DisciplineDashboard from "./pages/discipline/Dashboard";
+import TradeLog from "./pages/discipline/TradeLog";
+import WeeklyReview from "./pages/discipline/WeeklyReview";
+import Goals from "./pages/Goals";
+import Integrations from "./pages/Integrations";
+import LivePositions from "./pages/LivePositions";
+import Settings from "./pages/Settings";
 
 const rootRoute = createRootRoute({
 	component: Layout,
 });
 
+import { Navigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { DhanIntegrationPage } from "./pages/Dhan";
 import { DhanPortfolio } from "./pages/dhan/Portfolio";
-import { DhanTrades } from "./pages/dhan/Trades";
 import { DhanPositions } from "./pages/dhan/Positions";
-import { Navigate } from "@tanstack/react-router";
+import { DhanTrades } from "./pages/dhan/Trades";
 
 const dashboardSearchSchema = z.object({
 	page: z.number().optional().default(1),
@@ -88,6 +96,73 @@ const deepDiveRoute = createRoute({
 	path: "/deep-dive",
 	component: DeepDive,
 });
+
+const livePositionsRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/live-positions",
+	component: LivePositions,
+});
+
+const disciplineRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/discipline",
+	component: DisciplineDashboard,
+});
+
+const disciplineDashboardRoute = createRoute({
+	getParentRoute: () => disciplineRoute,
+	path: "checkin",
+	component: CheckIn,
+});
+
+const disciplineLogRoute = createRoute({
+	getParentRoute: () => disciplineRoute,
+	path: "log/$sessionId",
+	component: TradeLog,
+});
+
+const disciplineReviewRoute = createRoute({
+	getParentRoute: () => disciplineRoute,
+	path: "review",
+	component: WeeklyReview,
+});
+
+const disciplineRouteWithChildren = disciplineRoute.addChildren([
+	disciplineDashboardRoute,
+	disciplineLogRoute,
+	disciplineReviewRoute,
+]);
+
+const accountabilityRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/accountability",
+	component: Onboarding,
+});
+
+const accountabilityOnboardingRoute = createRoute({
+	getParentRoute: () => accountabilityRoute,
+	path: "onboarding",
+	component: Onboarding,
+});
+
+const accountabilityFeedRoute = createRoute({
+	getParentRoute: () => accountabilityRoute,
+	path: "feed",
+	component: AccountabilityFeed,
+});
+
+const accountabilitySummaryRoute = createRoute({
+	getParentRoute: () => accountabilityRoute,
+	path: "weekly-summary",
+	component: WeeklySummaryPage,
+});
+
+const accountabilityRouteWithChildren = accountabilityRoute.addChildren([
+	accountabilityOnboardingRoute,
+	accountabilityFeedRoute,
+	accountabilitySummaryRoute,
+]);
+
 const dhanRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/dhan",
@@ -131,7 +206,10 @@ const routeTree = rootRoute.addChildren([
 	chartsRoute,
 	integrationsRoute,
 	goalsRoute,
+	livePositionsRoute,
 	deepDiveRoute,
+	disciplineRouteWithChildren,
+	accountabilityRouteWithChildren,
 	dhanRouteWithChildren,
 ]);
 

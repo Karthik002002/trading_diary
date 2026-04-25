@@ -1,9 +1,9 @@
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "@tanstack/react-router";
 import classNames from "classnames";
-import { Icon } from "./ui/Icon";
 import { getIntegrationStatus } from "../api/client";
-import { useQuery } from "@tanstack/react-query";
 import SidebarNavItem from "./SidebarNavItem";
+import { Icon } from "./ui/Icon";
 
 interface SidebarProps {
 	isCollapsed: boolean;
@@ -74,7 +74,14 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 					activeIcon="integration-active"
 					defaultIcon="integration"
 				/>
-
+				<SidebarNavItem
+					to="/live-positions"
+					label="Live Positions"
+					isCollapsed={isCollapsed}
+					isActive={activeLocation.pathname === "/live-positions"}
+					activeIcon="live"
+					defaultIcon="live"
+				/>
 				<SidebarNavItem
 					to="/deep-dive"
 					label="Deep Dive"
@@ -82,6 +89,22 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 					isActive={activeLocation.pathname === "/deep-dive"}
 					activeIcon="deep-analyse-active"
 					defaultIcon="deep-analyse-default"
+				/>
+				<SidebarNavItem
+					to="/discipline"
+					label="Discipline"
+					isCollapsed={isCollapsed}
+					isActive={activeLocation.pathname === "/discipline"}
+					activeIcon="discipline"
+					defaultIcon="discipline"
+				/>
+				<SidebarNavItem
+					to="/accountability/feed"
+					label="Accountability"
+					isCollapsed={isCollapsed}
+					isActive={activeLocation.pathname === "/accountability"}
+					activeIcon="accountability"
+					defaultIcon="accountability"
 				/>
 				{getIsDhanEnabled?.enable && (
 					<SidebarNavItem

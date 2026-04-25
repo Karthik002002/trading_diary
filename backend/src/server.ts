@@ -1,20 +1,27 @@
+import { createServer } from "node:http";
+import os from "node:os";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
+import { Server } from "socket.io";
+import { startClipboardMonitor } from "./clipboardStore";
+import customScript from "./customScripts";
+import accountabilityRoutes from "./routes/accountabilityRoutes";
+import aiRoutes from "./routes/aiRoutes";
+import clipboardRoutes from "./routes/clipboardRoutes";
+import disciplineRoutes from "./routes/disciplineRoutes";
+import forexTradeRoutes from "./routes/forexTradeRoutes";
+import goalRoutes from "./routes/goalRoutes";
+import graphRouter from "./routes/graphRouter";
+import integrationRoutes from "./routes/integrationRoutes";
 import portfolioRoutes from "./routes/portfolioRoutes";
 import strategyRoutes from "./routes/strategyRoutes";
 import symbolRoutes from "./routes/symbolRoutes";
 import tagRoutes from "./routes/tagRoutes";
 import tradeRoutes from "./routes/tradeRoutes";
-import forexTradeRoutes from "./routes/forexTradeRoutes";
-import graphRouter from "./routes/graphRouter";
-import integrationRoutes from "./routes/integrationRoutes";
-import os from "node:os";
-import customScript from "./customScripts";
-import clipboardRoutes from "./routes/clipboardRoutes";
-import goalRoutes from "./routes/goalRoutes";
-import { startClipboardMonitor } from "./clipboardStore";
+import watchlistRoutes from "./routes/watchlist";
+import { startPriceBroadcast } from "./services/priceService";
 
 dotenv.config();
 
@@ -62,6 +69,10 @@ app.use("/api/graph", graphRouter);
 app.use("/api/integrations", integrationRoutes);
 app.use("/api/clipboard", clipboardRoutes);
 app.use("/api/goals", goalRoutes);
+app.use("/api/discipline", disciplineRoutes);
+app.use("/api/accountability", accountabilityRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/watchlist", watchlistRoutes);
 
 app.use("/uploads", express.static("uploads"));
 
@@ -75,7 +86,17 @@ mongoose
 	.then(() => console.log("MongoDB Connected"))
 	.catch((err) => console.log(err));
 
-app.listen(PORT, () => {
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+	cors: {
+		origin: "*",
+		methods: ["GET", "POST"],
+	},
+});
+
+startPriceBroadcast(io);
+
+httpServer.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);
 });
 

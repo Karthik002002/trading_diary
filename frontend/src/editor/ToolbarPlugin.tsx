@@ -30,7 +30,9 @@ import {
     AlignLeft,
     AlignCenter,
     AlignRight,
+    Image as ImageIcon,
 } from "lucide-react";
+import { INSERT_IMAGE_COMMAND } from "./ImagesPlugin";
 
 const LowPriority = 1;
 
@@ -93,6 +95,7 @@ export default function ToolbarPlugin() {
     return (
         <div className="toolbar">
             <button
+                type="button"
                 disabled={!canUndo}
                 onClick={() => {
                     editor.dispatchCommand(UNDO_COMMAND, undefined);
@@ -103,6 +106,7 @@ export default function ToolbarPlugin() {
                 <Undo size={18} />
             </button>
             <button
+                type="button"
                 disabled={!canRedo}
                 onClick={() => {
                     editor.dispatchCommand(REDO_COMMAND, undefined);
@@ -114,6 +118,7 @@ export default function ToolbarPlugin() {
             </button>
             <div className="divider" style={{ width: '1px', background: '#eee', margin: '0 4px' }} />
             <button
+                type="button"
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
                 }}
@@ -123,6 +128,7 @@ export default function ToolbarPlugin() {
                 <Bold size={18} />
             </button>
             <button
+                type="button"
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic");
                 }}
@@ -132,6 +138,7 @@ export default function ToolbarPlugin() {
                 <Italic size={18} />
             </button>
             <button
+                type="button"
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline");
                 }}
@@ -141,6 +148,7 @@ export default function ToolbarPlugin() {
                 <Underline size={18} />
             </button>
             <button
+                type="button"
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough");
                 }}
@@ -150,6 +158,7 @@ export default function ToolbarPlugin() {
                 <Strikethrough size={18} />
             </button>
             <button
+                type="button"
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code");
                 }}
@@ -160,6 +169,7 @@ export default function ToolbarPlugin() {
             </button>
             <div className="divider" style={{ width: '1px', background: '#eee', margin: '0 4px' }} />
             <button
+                type="button"
                 onClick={() => {
                     editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
                 }}
@@ -169,6 +179,7 @@ export default function ToolbarPlugin() {
                 <List size={18} />
             </button>
             <button
+                type="button"
                 onClick={() => {
                     editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
                 }}
@@ -179,6 +190,7 @@ export default function ToolbarPlugin() {
             </button>
             <div className="divider" style={{ width: '1px', background: '#eee', margin: '0 4px' }} />
             <button
+                type="button"
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "left");
                 }}
@@ -188,6 +200,7 @@ export default function ToolbarPlugin() {
                 <AlignLeft size={18} />
             </button>
             <button
+                type="button"
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "center");
                 }}
@@ -197,6 +210,7 @@ export default function ToolbarPlugin() {
                 <AlignCenter size={18} />
             </button>
             <button
+                type="button"
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "right");
                 }}
@@ -204,6 +218,19 @@ export default function ToolbarPlugin() {
                 aria-label="Right Align"
             >
                 <AlignRight size={18} />
+            </button>
+            <div className="divider" style={{ width: '1px', background: '#eee', margin: '0 4px' }} />
+            <button
+                type="button"
+                onClick={() => {
+                    const url = window.prompt("Image URL");
+                    if (!url) return;
+                    editor.dispatchCommand(INSERT_IMAGE_COMMAND, { src: url });
+                }}
+                className="toolbar-item spaced"
+                aria-label="Insert Image"
+            >
+                <ImageIcon size={18} />
             </button>
         </div>
     );

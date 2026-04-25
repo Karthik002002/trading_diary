@@ -1,0 +1,28 @@
+services:
+  chroma:
+    image: chromadb/chroma:0.5.0
+    container_name: trading_chroma
+    ports:
+      # Host port 8001 → container port 8000
+      # Your Python code connects to localhost:8001
+      # We use 8001 on the host to avoid clashing with your FastAPI on 8000
+      - "8001:8000"
+    volumes:
+      # Persist ChromaDB data on your machine so it survives container restarts
+      - chroma_data:/chroma/chroma
+    environment:
+      # Allow all origins (fine for local dev; lock down in production)
+      - CHROMA_SERVER_CORS_ALLOW_ORIGINS=["*"]
+      # Basic auth is disabled by default — enable in production
+      - IS_PERSISTENT=TRUE
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  # Named Docker volume — data lives at /var/lib/docker/volumes/trading_chroma_data
+  chroma_data:
+    name: trading_chroma_data

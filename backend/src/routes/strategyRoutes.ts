@@ -33,6 +33,7 @@ router.get("/status/limits", async (req: Request, res: Response) => {
     const portfolios = await Portfolio.find(entityFilter);
     const tradeModel: any = marketType === "forex" ? ForexTrade : Trade;
     const now = dayjs();
+  const startOfDay = now.startOf("day").toDate();
     const startOfWeek = now.startOf("week").toDate();
     const startOfMonth = now.startOf("month").toDate();
 
@@ -40,6 +41,11 @@ router.get("/status/limits", async (req: Request, res: Response) => {
 
     for (const strategy of strategies) {
       for (const portfolio of portfolios) {
+        const dailyTrades = await tradeModel.find({
+          strategy_id: strategy.id,
+          portfolio_id: portfolio.id,
+          trade_date: { $gte: startOfDay },
+        });
         const weeklyTrades = await tradeModel.find({
           strategy_id: strategy.id,
           portfolio_id: portfolio.id,
@@ -55,11 +61,17 @@ router.get("/status/limits", async (req: Request, res: Response) => {
           (sum: number, t: any) => sum + (t.pl || 0),
           0,
         );
+        const dailyPL = dailyTrades.reduce(
+          (sum: number, t: any) => sum + (t.pl || 0),
+          0,
+        );
         const monthlyPL = monthlyTrades.reduce(
           (sum: number, t: any) => sum + (t.pl || 0),
           0,
         );
 
+        const currentDailyLoss =
+          dailyPL < 0 ? Number(Math.abs(dailyPL).toFixed(2)) : 0;
         const currentWeeklyLoss =
           weeklyPL < 0 ? Number(Math.abs(weeklyPL).toFixed(2)) : 0;
         const currentMonthlyLoss =
@@ -92,9 +104,11 @@ router.get("/status/limits", async (req: Request, res: Response) => {
           strategyName: strategy.name,
           portfolioId: portfolio.id,
           portfolioName: portfolio.name,
+          dailyLossLimit: strategy.dailyLossLimit,
           weeklyLossLimit: strategy.weeklyLossLimit,
           monthlyLossLimit: strategy.monthlyLossLimit,
           consecutiveLossLimit: strategy.consecutiveLossLimit,
+          currentDailyLoss,
           currentWeeklyLoss,
           currentMonthlyLoss,
           currentConsecutiveLosses,

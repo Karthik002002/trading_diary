@@ -5,6 +5,7 @@ export interface IStrategy extends Document {
 	name: string;
 	market_type: "equity" | "forex";
 	description: string | null;
+	dailyLossLimit: number | null;
 	monthlyLossLimit: number | null;
 	weeklyLossLimit: number | null;
 	consecutiveLossLimit: number | null;
@@ -22,6 +23,7 @@ const StrategySchema: Schema = new Schema(
 			required: true,
 		},
 		description: { type: String, required: false, default: null },
+		dailyLossLimit: { type: Number, required: false, default: null },
 		monthlyLossLimit: { type: Number, required: false, default: null },
 		weeklyLossLimit: { type: Number, required: false, default: null },
 		consecutiveLossLimit: { type: Number, required: false, default: null },

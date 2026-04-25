@@ -20,6 +20,7 @@ router.post("/:type/connect", async (req, res) => {
 		const existingToken = await AccessToken.findOne({
 			access_token: accessToken,
 		});
+		
 		let checkingToken = accessToken;
 		if (existingToken) {
 			checkingToken = existingToken.toJSON().access_token;
@@ -32,10 +33,15 @@ router.post("/:type/connect", async (req, res) => {
 				"Content-Type": "application/json",
 			},
 		});
-
+		
 		// If the request is successful (status 200), the credentials are valid
 		if (response.status === 200) {
+			
 			await EnvManager.set(DHAN_ACCESS_TOKEN, accessToken);
+			const existingTypeRow = await AccessToken.findOne({type:type})
+			if(existingTypeRow){
+				await existingTypeRow.deleteOne()
+			}
 			const postToken = new AccessToken({ access_token: accessToken, type });
 			const savedToken = await postToken.save();
 			return res.status(200).json({

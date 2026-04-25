@@ -10,6 +10,10 @@ export const createStrategyValidator = [
 		.optional({ nullable: true })
 		.isString()
 		.withMessage("Description must be a string"),
+	body("dailyLossLimit")
+		.optional({ nullable: true })
+		.isNumeric()
+		.withMessage("Daily loss limit must be a number"),
 	body("monthlyLossLimit")
 		.optional({ nullable: true })
 		.isNumeric()
@@ -34,6 +38,10 @@ export const updateStrategyValidator = [
 		.optional({ nullable: true })
 		.isString()
 		.withMessage("Description must be a string"),
+	body("dailyLossLimit")
+		.optional({ nullable: true })
+		.isNumeric()
+		.withMessage("Daily loss limit must be a number"),
 	body("monthlyLossLimit")
 		.optional({ nullable: true })
 		.isNumeric()

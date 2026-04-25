@@ -45,6 +45,7 @@ export const useInfiniteTrades = (limit: number, filters?: TFilters) => {
       const { page, pages } = lastPage.pagination;
       return page < pages ? page + 1 : undefined;
     },
+    staleTime:1000*60 *60,
     initialPageParam: 1,
   });
 };

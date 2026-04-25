@@ -15,12 +15,14 @@ interface VirtualTableProps<T> {
 	data: T[];
 	columns: ColumnDef<T, any>[];
 	height?: string | number;
+	onScrollProgress?: (progress: number) => void;
 }
 
 export function VirtualTable<T>({
 	data,
 	columns,
 	height = "500px",
+	onScrollProgress,
 }: VirtualTableProps<T>) {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 
@@ -60,6 +62,14 @@ export function VirtualTable<T>({
 			ref={parentRef}
 			className="border border-gray-700  rounded-xl overflow-auto bg-surface shadow-2xl"
 			style={{ height: typeof height === "number" ? `${height}px` : height }}
+			onScroll={(event) => {
+				if (!onScrollProgress) return;
+				const element = event.currentTarget;
+				const maxScrollable = element.scrollHeight - element.clientHeight;
+				const progress =
+					maxScrollable <= 0 ? 0 : element.scrollTop / maxScrollable;
+				onScrollProgress(progress);
+			}}
 		>
 			<table className="w-full text-left text-sm text-gray-300 relative border-collapse">
 				<thead className="sticky top-0 bg-surface-highlight/90 backdrop-blur-md text-gray-100 uppercase text-xs z-10 shadow-md rounded-t-xl">

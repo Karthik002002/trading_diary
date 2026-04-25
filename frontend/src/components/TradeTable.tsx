@@ -81,9 +81,8 @@ const TradeTable: React.FC<TradeTableProps> = ({
 	// This prevents errors when component is used outside the "/" route
 	// Use safe search hook - returns empty object if not available
 	const search: any = useSafeSearch();
-
-	const observerTarget = useRef<HTMLDivElement>(null);
 	const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+	const hasScrolledTableRef = useRef(false);
 
 	const { marketType } = useMarketTypeQueryParam();
 
@@ -146,23 +145,25 @@ const TradeTable: React.FC<TradeTableProps> = ({
 	const [selectedImageUrl, setSelectedImageUrl] = useState<Trade | null>(null);
 	const [inrRatesByCurrency, setInrRatesByCurrency] = useState<Record<string, number>>({});
 
-	// Infinite scroll observer
-	useEffect(() => {
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-					fetchNextPage();
-				}
-			},
-			{ threshold: 1.0 },
-		);
-
-		if (observerTarget.current) {
-			observer.observe(observerTarget.current);
-		}
-
-		return () => observer.disconnect();
-	}, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+	const handleTableScrollProgress = React.useCallback(
+		(progress: number) => {
+			if (!useInfiniteScroll || externalTrades) return;
+			if (progress > 0) {
+				hasScrolledTableRef.current = true;
+			}
+			if (!hasScrolledTableRef.current) return;
+			if (progress >= 0.8 && hasNextPage && !isFetchingNextPage) {
+				fetchNextPage();
+			}
+		},
+		[
+			useInfiniteScroll,
+			externalTrades,
+			hasNextPage,
+			isFetchingNextPage,
+			fetchNextPage,
+		],
+	);
 
 	const handleDeleteClick = (trade: Trade) => {
 		setTradeToDelete(trade);
@@ -400,10 +401,12 @@ const TradeTable: React.FC<TradeTableProps> = ({
 
 	return (
 		<div className="">
-			<VirtualTable data={trades} columns={columns} height="450px" />
-
-			{/* Infinite scroll trigger - only show if using infinite scroll */}
-			{useInfiniteScroll && !externalTrades && <div ref={observerTarget} className="h-0 " />}
+			<VirtualTable
+				data={trades}
+				columns={columns}
+				height="450px"
+				onScrollProgress={handleTableScrollProgress}
+			/>
 
 			{useInfiniteScroll && !externalTrades && isFetchingNextPage && (
 				<div className="flex justify-center py-4">

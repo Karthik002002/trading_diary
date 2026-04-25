@@ -4,6 +4,7 @@ import RefetchFloatingButton from "./RefetchFloatingButton";
 import FloatingTradeTypeToggle from "./FloatingTradeTypeToggle";
 import Sidebar from "./Sidebar";
 import StrategyLimitMonitor from "./StrategyLimitMonitor";
+import FloatingChatbot from "./FloatingChatbot";
 
 const Layout = () => {
 	const savedState = localStorage.getItem("isCollapsed");
@@ -28,6 +29,7 @@ const Layout = () => {
 			<RefetchFloatingButton />
 			<FloatingTradeTypeToggle />
 			<StrategyLimitMonitor />
+			<FloatingChatbot />
 		</div>
 	);
 };

@@ -25,6 +25,7 @@ const StrategyManager = () => {
 		name: "",
 		description: "",
 		market_type: "equity" as "equity" | "forex",
+		dailyLossLimit: null as number | null,
 		monthlyLossLimit: null as number | null,
 		weeklyLossLimit: null as number | null,
 		consecutiveLossLimit: null as number | null,
@@ -37,6 +38,7 @@ const StrategyManager = () => {
 				name: strategy.name,
 				description: strategy.description || "",
 				market_type: strategy.market_type || "equity",
+				dailyLossLimit: strategy.dailyLossLimit || null,
 				monthlyLossLimit: strategy.monthlyLossLimit || null,
 				weeklyLossLimit: strategy.weeklyLossLimit || null,
 				consecutiveLossLimit: strategy.consecutiveLossLimit || null,
@@ -47,6 +49,7 @@ const StrategyManager = () => {
 				name: "",
 				description: "",
 				market_type: "equity",
+				dailyLossLimit: null,
 				monthlyLossLimit: null,
 				weeklyLossLimit: null,
 				consecutiveLossLimit: null,
@@ -83,6 +86,16 @@ const StrategyManager = () => {
 				header: "Market",
 				cell: (info) => info.getValue()?.toUpperCase?.() || "EQUITY",
 				size: 90,
+			}),
+			columnHelper.accessor("dailyLossLimit", {
+				header: "D. Limit",
+				cell: (info) =>
+					info.getValue() ? (
+						<span className="text-red-300">{currency}{info.getValue()}</span>
+					) : (
+						"-"
+					),
+				size: 100,
 			}),
 			columnHelper.accessor("weeklyLossLimit", {
 				header: "W. Limit",
@@ -166,7 +179,7 @@ const StrategyManager = () => {
 				open={isOpen}
 				onCancel={handleClose}
 				closable
-				width={800}
+				width={"80vw"}
 				title={editingId ? "Edit Strategy" : "New Strategy"}
 				footer={
 					<>
@@ -183,7 +196,7 @@ const StrategyManager = () => {
 					</>
 				}
 			>
-				<div className="grid grid-cols-2 gap-4 mb-4">
+				<div className="grid grid-cols-6 gap-4 mb-4">
 					<div>
 						<label className="block text-sm font-medium mb-1">
 							Strategy Name
@@ -210,12 +223,26 @@ const StrategyManager = () => {
 								{ label: "Equity", value: "equity" },
 								{ label: "Forex", value: "forex" },
 							]}
+							style={{width:"100%"}}
 						/>
 					</div>
 
-				</div>
-				<div className="grid grid-cols-8 gap-3">
-					<div className="col-span-2">
+				
+					<div className="col-span-1">
+						<label className="block text-sm font-medium mb-1">
+							Daily Loss Limit
+						</label>
+						<InputNumber
+							className="w-full"
+							placeholder="Daily Limit"
+							value={formData.dailyLossLimit}
+							onChange={(val) =>
+								setFormData({ ...formData, dailyLossLimit: val })
+							}
+							style={{ width: "90%" }}
+						/>
+					</div>
+					<div className="col-span-1">
 						<label className="block text-sm font-medium mb-1">
 							Weekly Loss Limit
 						</label>
@@ -229,7 +256,7 @@ const StrategyManager = () => {
 							style={{ width: "90%" }}
 						/>
 					</div>
-					<div className="col-span-2">
+					<div className="col-span-1">
 						<label className="block text-sm font-medium mb-1">
 							Monthly Loss Limit
 						</label>
@@ -243,7 +270,7 @@ const StrategyManager = () => {
 							}
 						/>
 					</div>
-					<div className="col-span-2">
+					<div className="col-span-1">
 						<label className="block text-sm font-medium mb-1">
 							Loss Streak Alert
 						</label>

@@ -49,6 +49,10 @@ export interface Strategy {
 	name: string;
 	market_type: MarketType;
 	description: string | null;
+	dailyLossLimit?: number | null;
+	weeklyLossLimit?: number | null;
+	monthlyLossLimit?: number | null;
+	consecutiveLossLimit?: number | null;
 	createdAt?: string;
 	updatedAt?: string;
 }

@@ -26,7 +26,11 @@ import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { FaPaste } from "react-icons/fa";
-import { fetchClipboardData, queryClient } from "../../api/client";
+import {
+	fetchExternalAiReferenceTrade,
+	fetchClipboardData,
+	queryClient,
+} from "../../api/client";
 import {
 	usePortfolios,
 	useStrategies,
@@ -70,6 +74,7 @@ const CreateTradeModal: React.FC<Props> = ({
 	>(null);
 	const { maxLoss, currency } = usePreferenceStore();
 	const maxLossNumber = Number(maxLoss);
+	const [isTakingReference, setIsTakingReference] = useState(false);
 	const {
 		control,
 		handleSubmit,
@@ -551,6 +556,70 @@ const CreateTradeModal: React.FC<Props> = ({
 		}
 	};
 
+	const handleTakeReference = async () => {
+		const image = getValues("photo");
+		if (!(image instanceof File || image instanceof Blob)) {
+			message.error("Upload main result photo first.");
+			return;
+		}
+
+		try {
+			setIsTakingReference(true);
+			const aiData = await fetchExternalAiReferenceTrade(image);
+
+			if (typeof aiData.entry === "number" && !Number.isNaN(aiData.entry)) {
+				setValue("entry_price", aiData.entry, { shouldDirty: true });
+			}
+			if (typeof aiData.exit === "number" && !Number.isNaN(aiData.exit)) {
+				setValue("exit_price", aiData.exit, { shouldDirty: true });
+			}
+			if (typeof aiData.target === "number" && !Number.isNaN(aiData.target)) {
+				setValue("take_profit", aiData.target, { shouldDirty: true });
+			}
+			if (
+				typeof aiData.stop_loss === "number" &&
+				!Number.isNaN(aiData.stop_loss)
+			) {
+				setValue("stop_loss", aiData.stop_loss, { shouldDirty: true });
+			}
+
+			const stockName = aiData.stock_name?.trim().toLowerCase();
+			if (stockName) {
+				const matchedSymbol = filteredSymbols.find(
+					(sym) =>
+						sym.symbol.toLowerCase() === stockName ||
+						sym.symbol.toLowerCase().includes(stockName) ||
+						stockName.includes(sym.symbol.toLowerCase()),
+				);
+				if (matchedSymbol) {
+					setValue("symbol_id", matchedSymbol.id, { shouldDirty: true });
+				}
+			}
+
+			const timeframe = aiData.timeframe?.trim();
+			if (timeframe) {
+				const currentPhotos = getValues("timeframe_photos") ?? [];
+				if (currentPhotos.length > 0) {
+					const nextPhotos = [...currentPhotos];
+					nextPhotos[0] = {
+						...nextPhotos[0],
+						type: timeframe,
+					};
+					setValue("timeframe_photos", nextPhotos, { shouldDirty: true });
+				}
+			}
+
+			message.success("Reference applied from AI response.");
+		} catch (error) {
+			console.error("Failed to take reference:", error);
+			message.error(
+				error instanceof Error ? error.message : "Failed to take reference.",
+			);
+		} finally {
+			setIsTakingReference(false);
+		}
+	};
+
 	useHotkeys("alt+v", async (e) => {
 		e.preventDefault();
 		e.stopPropagation();
@@ -560,7 +629,19 @@ const CreateTradeModal: React.FC<Props> = ({
 		<Modal
 			open={isOpen}
 			onCancel={handleClose}
-			title={tradeToEdit ? "Edit Trade" : "Record New Trade"}
+			title={
+				<div className="flex items-center justify-between pr-6">
+					<span>{tradeToEdit ? "Edit Trade" : "Record New Trade"}</span>
+					<Button
+						size="small"
+						type="default"
+						onClick={handleTakeReference}
+						loading={isTakingReference}
+					>
+						Take Reference
+					</Button>
+				</div>
+			}
 			footer={null}
 			centered
 			width={{
