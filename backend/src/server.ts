@@ -4,12 +4,14 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
+import path from "path";
 import { Server } from "socket.io";
 import { startClipboardMonitor } from "./clipboardStore";
 import customScript from "./customScripts";
 import accountabilityRoutes from "./routes/accountabilityRoutes";
 import aiRoutes from "./routes/aiRoutes";
 import clipboardRoutes from "./routes/clipboardRoutes";
+import dhanRoutes from "./routes/dhanRoutes";
 import disciplineRoutes from "./routes/disciplineRoutes";
 import forexTradeRoutes from "./routes/forexTradeRoutes";
 import goalRoutes from "./routes/goalRoutes";
@@ -23,7 +25,7 @@ import tradeRoutes from "./routes/tradeRoutes";
 import watchlistRoutes from "./routes/watchlist";
 import { startPriceBroadcast } from "./services/priceService";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -70,15 +72,50 @@ app.use("/api/integrations", integrationRoutes);
 app.use("/api/clipboard", clipboardRoutes);
 app.use("/api/goals", goalRoutes);
 app.use("/api/discipline", disciplineRoutes);
+app.use("/api/dhan", dhanRoutes);
 app.use("/api/accountability", accountabilityRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/watchlist", watchlistRoutes);
 
 app.use("/uploads", express.static("uploads"));
 
-app.get("/", (req, res) => {
-	console.log("Fetching root");
-	res.send("API is running...");
+const clientPath = path.join(__dirname, "../dist/client");
+app.use(express.static(clientPath));
+
+app.get("/api/health", (_req, res) => {
+	const mongoState = mongoose.connection.readyState;
+	const mongoStatus =
+		mongoState === 1
+			? "connected"
+			: mongoState === 2
+				? "connecting"
+				: "disconnected";
+
+	res.json({
+		status: "ok",
+		mongodb: mongoStatus,
+		timestamp: new Date().toISOString(),
+	});
+});
+
+app.use("/api/portfolios", portfolioRoutes);
+app.use("/api/trades", tradeRoutes);
+app.use("/api/forex/trades", forexTradeRoutes);
+app.use("/api/strategies", strategyRoutes);
+app.use("/api/symbols", symbolRoutes);
+app.use("/api/tags", tagRoutes);
+app.use("/api/graph", graphRouter);
+app.use("/api/integrations", integrationRoutes);
+app.use("/api/clipboard", clipboardRoutes);
+app.use("/api/goals", goalRoutes);
+app.use("/api/discipline", disciplineRoutes);
+app.use("/api/dhan", dhanRoutes);
+app.use("/api/accountability", accountabilityRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/watchlist", watchlistRoutes);
+
+app.get("*", (_req, res) => {
+	res.sendFile(path.join(clientPath, "index.html"));
 });
 
 mongoose

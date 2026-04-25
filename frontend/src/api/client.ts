@@ -27,8 +27,8 @@ export const queryClient = new QueryClient({
 	}),
 });
 
-const BASE_URL = "http://localhost:5000/api";
-export const BACKEND_URL = "http://localhost:5000";
+const BASE_URL = (process.env.BASE_URL || "http://localhost:5000") + "/api";
+export const BACKEND_URL = process.env.BASE_URL || "http://localhost:5000";
 export const fetchTrades = async (
 	page = 1,
 	limit = 20,
@@ -706,4 +706,72 @@ export const fetchNseSymbols = async (): Promise<string[]> => {
 	const response = await fetch(`${BASE_URL}/watchlist/symbols`);
 	if (!response.ok) throw new Error("Failed to fetch symbols");
 	return response.json();
+};
+
+export interface DhanHolding {
+	tradingSymbol: string;
+	exchange: string;
+	securityId: string;
+	isin: string;
+	totalQty: number;
+	dpQty: number;
+	t1Qty: number;
+	mtf_t1_qty: number;
+	mtf_qty: number;
+	availableQty: number;
+	collateralQty: number;
+	avgCostPrice: number;
+	lastTradedPrice: number;
+}
+
+export const fetchDhanHoldings = async (): Promise<DhanHolding[]> => {
+	const response = await fetch(`${BASE_URL}/dhan/holdings`);
+	if (!response.ok) throw new Error("Failed to fetch Dhan holdings");
+	const data = await response.json();
+	if (data.error) throw new Error(data.error);
+	return Array.isArray(data) ? data : [];
+};
+
+export interface DhanPosition {
+	tradingSymbol: string;
+	exchange: string;
+	productType: string;
+	positionType: string;
+	buyAvg: number;
+	sellAvg: number;
+	netQty: number;
+	unrealizedProfit: number;
+	realizedProfit: number;
+	dayBuyValue: number;
+	daySellValue: number;
+}
+
+export const fetchDhanPositions = async (): Promise<DhanPosition[]> => {
+	const response = await fetch(`${BASE_URL}/dhan/positions`);
+	if (!response.ok) throw new Error("Failed to fetch Dhan positions");
+	const data = await response.json();
+	if (data.error) throw new Error(data.error);
+	return Array.isArray(data) ? data : [];
+};
+
+export interface DhanOrder {
+	orderId: string;
+	tradingSymbol: string;
+	transactionType: string;
+	orderStatus: string;
+	orderType: string;
+	productType: string;
+	quantity: number;
+	filledQty: number;
+	price: number;
+	averageTradedPrice: number;
+	updateTime: string;
+}
+
+export const fetchDhanOrders = async (): Promise<DhanOrder[]> => {
+	const response = await fetch(`${BASE_URL}/dhan/orders`);
+	if (!response.ok) throw new Error("Failed to fetch Dhan orders");
+	const data = await response.json();
+	if (data.error) throw new Error(data.error);
+	return Array.isArray(data) ? data : [];
 };

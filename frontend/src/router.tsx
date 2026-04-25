@@ -166,7 +166,7 @@ const accountabilityRouteWithChildren = accountabilityRoute.addChildren([
 const dhanRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/dhan",
-	component: DhanIntegrationPage,
+	component: DhanPositions,
 });
 
 const dhanPortfolioRoute = createRoute({
@@ -181,11 +181,11 @@ const dhanTradesRoute = createRoute({
 	component: DhanTrades,
 });
 
-const dhanPositionsRoute = createRoute({
-	getParentRoute: () => dhanRoute,
-	path: "positions",
-	component: DhanPositions,
-});
+// const dhanPositionsRoute = createRoute({
+// 	getParentRoute: () => dhanRoute,
+// 	path: "positions",
+// 	component: DhanPositions,
+// });
 
 const dhanIndexRoute = createRoute({
 	getParentRoute: () => dhanRoute,
@@ -197,7 +197,7 @@ const dhanRouteWithChildren = dhanRoute.addChildren([
 	dhanIndexRoute,
 	dhanPortfolioRoute,
 	dhanTradesRoute,
-	dhanPositionsRoute,
+	// dhanPositionsRoute,
 ]);
 
 const routeTree = rootRoute.addChildren([

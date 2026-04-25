@@ -30,51 +30,14 @@ export const DhanIntegrationPage = () => {
 				navigate({ to: "/dhan/trades" });
 				break;
 			case "positions":
-				navigate({ to: "/dhan/positions" });
+				navigate({ to: "/dhan" });
 				break;
 		}
 	};
 
-	const items = [
-		{
-			key: 'portfolio',
-			label: (
-				<span>
-					Portfolio
-				</span>
-			),
-		},
-		{
-			key: 'trades',
-			label: (
-				<span>
-					Trades
-				</span>
-			),
-		},
-		{
-			key: 'positions',
-			label: (
-				<span>
-					Positions
-				</span>
-			),
-		},
-	];
-
 	return (
 		<Layout className="min-h-full ">
-			<div className="px-6 pt-6">
-				<Title level={2} className="">Dhan Integration</Title>
-				<Tabs
-					activeKey={getActiveKey()}
-					onChange={handleTabChange}
-					items={items}
-					size="large"
-					type="line"
-					className="mb-0"
-				/>
-			</div>
+			
 			<Content className="p-6 ">
 				<Outlet />
 			</Content>
