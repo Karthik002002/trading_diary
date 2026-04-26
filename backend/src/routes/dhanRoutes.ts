@@ -91,4 +91,36 @@ router.get("/orders", async (_req, res) => {
 	}
 });
 
+router.post("/order", async (req, res) => {
+	const isSuperOrder = req.body.isSuperOrder || false;
+	try {
+		const accessToken = await getAccessToken("dhan");
+		if (!accessToken) {
+			return res
+				.status(401)
+				.json({ error: "Dhan access token not configured" });
+		}
+
+		const { isSuperOrder: _, ...orderData } = req.body;
+		const endpoint = isSuperOrder ? dhanUrl("superOrders") : dhanUrl("orders");
+
+		const response = await axios.post(endpoint, orderData, {
+			headers: {
+				"access-token": accessToken,
+				"Content-Type": "application/json",
+			},
+		});
+
+		res.json(response.data);
+	} catch (error: any) {
+		console.error(
+			isSuperOrder ? "Dhan super order error:" : "Dhan order error:",
+			error.response?.data || error.message,
+		);
+		res.status(error.response?.status || 500).json({
+			error: error.response?.data?.errorMessage || "Failed to place order",
+		});
+	}
+});
+
 export default router;

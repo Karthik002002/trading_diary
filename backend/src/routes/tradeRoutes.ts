@@ -773,7 +773,7 @@ router.post("/deep-dive", async (req: Request, res: Response) => {
 						// Case-insensitive regex for string fields
 						query[field] = { $regex: value, $options: "i" };
 						break;
-					case "in":
+					case "in": {
 						// Expecting value to be an array or comma-separated string
 						const inValues = Array.isArray(value) ? value : String(value).split(",");
 						// Handle ObjectId conversion for tags
@@ -783,7 +783,8 @@ router.post("/deep-dive", async (req: Request, res: Response) => {
 							query[field] = { $in: inValues };
 						}
 						break;
-					case "nin":
+					}
+					case "nin": {
 						const ninValues = Array.isArray(value) ? value : String(value).split(",");
 						// Handle ObjectId conversion for tags
 						if (field === "tags") {
@@ -792,6 +793,7 @@ router.post("/deep-dive", async (req: Request, res: Response) => {
 							query[field] = { $nin: ninValues };
 						}
 						break;
+					}
 					// For boolean checks or specific existence
 					case "exists":
 						query[field] = { $exists: value === "true" || value === true };

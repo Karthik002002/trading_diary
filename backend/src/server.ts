@@ -6,7 +6,6 @@ import express from "express";
 import mongoose from "mongoose";
 import path from "path";
 import { Server } from "socket.io";
-import { startClipboardMonitor } from "./clipboardStore";
 import customScript from "./customScripts";
 import accountabilityRoutes from "./routes/accountabilityRoutes";
 import aiRoutes from "./routes/aiRoutes";
@@ -24,6 +23,10 @@ import tagRoutes from "./routes/tagRoutes";
 import tradeRoutes from "./routes/tradeRoutes";
 import watchlistRoutes from "./routes/watchlist";
 import { startPriceBroadcast } from "./services/priceService";
+import  ErrorHandler from "errorhandler";
+import { MongoClient } from 'mongodb';
+
+
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
@@ -56,10 +59,14 @@ const getLocalIPv4Address = () => {
 const myIPv4 = getLocalIPv4Address();
 
 console.log("My local IPv4 address is:", myIPv4);
+console.log("MongoDB URI:", MONGO_URI);
+console.log("Server Port:", PORT);
+
 app.use((req, res, next) => {
 	console.log(`[${new Date().toISOString()}] ${req.method} ${req.baseUrl}`);
 	next();
 });
+// app.use(ErrorHandler({ log:true }))
 
 app.use("/api/portfolios", portfolioRoutes);
 app.use("/api/trades", tradeRoutes);
@@ -98,30 +105,25 @@ app.get("/api/health", (_req, res) => {
 	});
 });
 
-app.use("/api/portfolios", portfolioRoutes);
-app.use("/api/trades", tradeRoutes);
-app.use("/api/forex/trades", forexTradeRoutes);
-app.use("/api/strategies", strategyRoutes);
-app.use("/api/symbols", symbolRoutes);
-app.use("/api/tags", tagRoutes);
-app.use("/api/graph", graphRouter);
-app.use("/api/integrations", integrationRoutes);
-app.use("/api/clipboard", clipboardRoutes);
-app.use("/api/goals", goalRoutes);
-app.use("/api/discipline", disciplineRoutes);
-app.use("/api/dhan", dhanRoutes);
-app.use("/api/accountability", accountabilityRoutes);
-app.use("/api/ai", aiRoutes);
-app.use("/api/watchlist", watchlistRoutes);
+// app.get("*", (_req, res) => {
+// 	res.sendFile(path.join(clientPath, "index.html"));
+// });
 
-app.get("*", (_req, res) => {
-	res.sendFile(path.join(clientPath, "index.html"));
-});
 
 mongoose
 	.connect(MONGO_URI)
 	.then(() => console.log("MongoDB Connected"))
-	.catch((err) => console.log(err));
+	.catch((err) =>
+		console.error("MongoDB Connection Error:", err.message || err),
+	);
+
+process.on("unhandledRejection", (reason, promise) => {
+	console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+	console.error("Uncaught Exception:", err.message || err);
+});
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -133,9 +135,15 @@ const io = new Server(httpServer, {
 
 startPriceBroadcast(io);
 
-httpServer.listen(PORT, () => {
-	console.log(`Server running on port ${PORT}`);
-});
+try {
+	httpServer.listen(PORT, () => {
+		console.log(`Server running on port ${PORT}`);
+	});
+} catch (listenErr) {
+	console.error("Listen Error:", listenErr);
+}
 
 customScript();
+// customScript(); // disabled
+
 // startClipboardMonitor();

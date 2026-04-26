@@ -1,4 +1,4 @@
-import { ReloadOutlined } from "@ant-design/icons";
+import { PlusOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import {
 	createColumnHelper,
@@ -10,6 +10,8 @@ import {
 	Alert,
 	Button,
 	ConfigProvider,
+	Flex,
+	Radio,
 	Select,
 	Skeleton,
 	Tag,
@@ -17,12 +19,14 @@ import {
 	theme,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
+import { OrdersTable } from "@/components/OrdersTable";
 import type { DhanHolding, DhanOrder, DhanPosition } from "../../api/client";
 import {
 	useDhanHoldings,
 	useDhanOrders,
 	useDhanPositions,
 } from "../../hooks/useDhanData";
+import OrderModal from "./OrderModal";
 
 const columnHelper = createColumnHelper<DhanHolding>();
 const posColumnHelper = createColumnHelper<DhanPosition>();
@@ -354,184 +358,184 @@ const PositionsTable: React.FC<{ data: DhanPosition[] }> = ({ data }) => {
 	);
 };
 
-const OrdersTable: React.FC<{
-	data: DhanOrder[];
-	statusFilter: string;
-	onFilterChange: (v: string) => void;
-}> = ({ data, statusFilter, onFilterChange }) => {
-	const filteredData = useMemo(() => {
-		if (!statusFilter || statusFilter === "all") return data;
-		return data.filter((o) => o.orderStatus === statusFilter);
-	}, [data, statusFilter]);
+// const OrdersTable: React.FC<{
+// 	data: DhanOrder[];
+// 	statusFilter: string;
+// 	onFilterChange: (v: string) => void;
+// }> = ({ data, statusFilter, onFilterChange }) => {
+// 	const filteredData = useMemo(() => {
+// 		if (!statusFilter || statusFilter === "all") return data;
+// 		return data.filter((o) => o.orderStatus === statusFilter);
+// 	}, [data, statusFilter]);
 
-	const getStatusColor = (status: string): string => {
-		switch (status) {
-			case "TRADED":
-				return "green";
-			case "PENDING":
-				return "orange";
-			case "CANCELLED":
-				return "default";
-			case "REJECTED":
-				return "red";
-			case "TRANSIT":
-				return "blue";
-			case "PART_TRADED":
-				return "gold";
-			default:
-				return "default";
-		}
-	};
+// 	const getStatusColor = (status: string): string => {
+// 		switch (status) {
+// 			case "TRADED":
+// 				return "green";
+// 			case "PENDING":
+// 				return "orange";
+// 			case "CANCELLED":
+// 				return "default";
+// 			case "REJECTED":
+// 				return "red";
+// 			case "TRANSIT":
+// 				return "blue";
+// 			case "PART_TRADED":
+// 				return "gold";
+// 			default:
+// 				return "default";
+// 		}
+// 	};
 
-	const columns = useMemo(
-		() => [
-			orderColumnHelper.accessor("orderId", {
-				header: "Order ID",
-				cell: ({ getValue }) => (
-					<span className="font-mono text-xs truncate block max-w-[100px]">
-						{getValue()?.slice(-8)}
-					</span>
-				),
-			}),
-			orderColumnHelper.accessor("tradingSymbol", {
-				header: "Symbol",
-				cell: ({ getValue }) => (
-					<span className="font-semibold">{getValue()}</span>
-				),
-			}),
-			orderColumnHelper.accessor("transactionType", {
-				header: "Side",
-				cell: ({ getValue }) => {
-					const isBuy = getValue() === "BUY";
-					return <Tag color={isBuy ? "green" : "red"}>{getValue()}</Tag>;
-				},
-			}),
-			orderColumnHelper.accessor("orderStatus", {
-				header: "Status",
-				cell: ({ getValue }) => (
-					<Tag color={getStatusColor(getValue() || "")}>{getValue()}</Tag>
-				),
-			}),
-			orderColumnHelper.accessor("orderType", {
-				header: "Type",
-				cell: ({ getValue }) => <span>{getValue()}</span>,
-			}),
-			orderColumnHelper.accessor("productType", {
-				header: "Product",
-				cell: ({ getValue }) => <Tag>{getValue()}</Tag>,
-			}),
-			orderColumnHelper.accessor("quantity", {
-				header: "Qty",
-				cell: ({ getValue }) => <span>{getValue()}</span>,
-			}),
-			orderColumnHelper.accessor("filledQty", {
-				header: "Filled",
-				cell: ({ getValue }) => <span>{getValue()}</span>,
-			}),
-			orderColumnHelper.accessor("price", {
-				header: "Price",
-				cell: ({ getValue }) => (
-					<span className="font-mono">
-						{getValue() === 0 ? "MARKET" : formatINR(getValue())}
-					</span>
-				),
-			}),
-			orderColumnHelper.accessor("averageTradedPrice", {
-				header: "Avg Traded",
-				cell: ({ getValue }) => (
-					<span
-						className={
-							getValue() === 0 ? "font-mono text-gray-500" : "font-mono"
-						}
-					>
-						{getValue() === 0 ? "--" : formatINR(getValue())}
-					</span>
-				),
-			}),
-			orderColumnHelper.accessor("updateTime", {
-				header: "Time",
-				cell: ({ getValue }) => {
-					const time = getValue();
-					if (!time) return <span>--</span>;
-					const date = new Date(time);
-					return (
-						<span className="font-mono">
-							{date.toLocaleTimeString("en-IN", {
-								hour: "2-digit",
-								minute: "2-digit",
-								second: "2-digit",
-							})}
-						</span>
-					);
-				},
-			}),
-		],
-		[],
-	);
+// 	const columns = useMemo(
+// 		() => [
+// 			orderColumnHelper.accessor("orderId", {
+// 				header: "Order ID",
+// 				cell: ({ getValue }) => (
+// 					<span className="font-mono text-xs truncate block max-w-[100px]">
+// 						{getValue()?.slice(-8)}
+// 					</span>
+// 				),
+// 			}),
+// 			orderColumnHelper.accessor("tradingSymbol", {
+// 				header: "Symbol",
+// 				cell: ({ getValue }) => (
+// 					<span className="font-semibold">{getValue()}</span>
+// 				),
+// 			}),
+// 			orderColumnHelper.accessor("transactionType", {
+// 				header: "Side",
+// 				cell: ({ getValue }) => {
+// 					const isBuy = getValue() === "BUY";
+// 					return <Tag color={isBuy ? "green" : "red"}>{getValue()}</Tag>;
+// 				},
+// 			}),
+// 			orderColumnHelper.accessor("orderStatus", {
+// 				header: "Status",
+// 				cell: ({ getValue }) => (
+// 					<Tag color={getStatusColor(getValue() || "")}>{getValue()}</Tag>
+// 				),
+// 			}),
+// 			orderColumnHelper.accessor("orderType", {
+// 				header: "Type",
+// 				cell: ({ getValue }) => <span>{getValue()}</span>,
+// 			}),
+// 			orderColumnHelper.accessor("productType", {
+// 				header: "Product",
+// 				cell: ({ getValue }) => <Tag>{getValue()}</Tag>,
+// 			}),
+// 			orderColumnHelper.accessor("quantity", {
+// 				header: "Qty",
+// 				cell: ({ getValue }) => <span>{getValue()}</span>,
+// 			}),
+// 			orderColumnHelper.accessor("filledQty", {
+// 				header: "Filled",
+// 				cell: ({ getValue }) => <span>{getValue()}</span>,
+// 			}),
+// 			orderColumnHelper.accessor("price", {
+// 				header: "Price",
+// 				cell: ({ getValue }) => (
+// 					<span className="font-mono">
+// 						{getValue() === 0 ? "MARKET" : formatINR(getValue())}
+// 					</span>
+// 				),
+// 			}),
+// 			orderColumnHelper.accessor("averageTradedPrice", {
+// 				header: "Avg Traded",
+// 				cell: ({ getValue }) => (
+// 					<span
+// 						className={
+// 							getValue() === 0 ? "font-mono text-gray-500" : "font-mono"
+// 						}
+// 					>
+// 						{getValue() === 0 ? "--" : formatINR(getValue())}
+// 					</span>
+// 				),
+// 			}),
+// 			orderColumnHelper.accessor("updateTime", {
+// 				header: "Time",
+// 				cell: ({ getValue }) => {
+// 					const time = getValue();
+// 					if (!time) return <span>--</span>;
+// 					const date = new Date(time);
+// 					return (
+// 						<span className="font-mono">
+// 							{date.toLocaleTimeString("en-IN", {
+// 								hour: "2-digit",
+// 								minute: "2-digit",
+// 								second: "2-digit",
+// 							})}
+// 						</span>
+// 					);
+// 				},
+// 			}),
+// 		],
+// 		[],
+// 	);
 
-	const table = useReactTable({
-		data: filteredData,
-		columns,
-		getCoreRowModel: getCoreRowModel(),
-	});
+// 	const table = useReactTable({
+// 		data: filteredData,
+// 		columns,
+// 		getCoreRowModel: getCoreRowModel(),
+// 	});
 
-	return (
-		<div>
-			<div className="mb-4 flex items-center gap-3">
-				<span className="text-gray-400 text-sm">Filter by Status:</span>
-				<Select
-					value={statusFilter}
-					onChange={onFilterChange}
-					style={{ width: 150 }}
-					options={[
-						{ value: "all", label: "All" },
-						{ value: "TRADED", label: "Traded" },
-						{ value: "PENDING", label: "Pending" },
-						{ value: "CANCELLED", label: "Cancelled" },
-						{ value: "REJECTED", label: "Rejected" },
-						{ value: "TRANSIT", label: "Transit" },
-						{ value: "PART_TRADED", label: "Part Traded" },
-					]}
-				/>
-			</div>
-			<div className="overflow-x-auto">
-				<table className="w-full">
-					<thead className="bg-surface-highlight border-b border-border">
-						{table.getHeaderGroups().map((headerGroup) => (
-							<tr key={headerGroup.id}>
-								{headerGroup.headers.map((header) => (
-									<th
-										key={header.id}
-										className="text-left px-3 py-2 text-sm font-medium text-gray-400"
-									>
-										{flexRender(
-											header.column.columnDef.header,
-											header.getContext(),
-										)}
-									</th>
-								))}
-							</tr>
-						))}
-					</thead>
-					<tbody>
-						{table.getRowModel().rows.map((row) => (
-							<tr
-								key={row.id}
-								className="border-b border-border hover:bg-surface-highlight/50"
-							>
-								{row.getVisibleCells().map((cell) => (
-									<td key={cell.id} className="px-3 py-2 text-sm">
-										{flexRender(cell.column.columnDef.cell, cell.getContext())}
-									</td>
-								))}
-							</tr>
-						))}
-					</tbody>
-				</table>
-			</div>
-		</div>
-	);
-};
+// 	return (
+// 		<div>
+// 			<div className="mb-4 flex items-center gap-3">
+// 				<span className="text-gray-400 text-sm">Filter by Status:</span>
+// 				<Select
+// 					value={statusFilter}
+// 					onChange={onFilterChange}
+// 					style={{ width: 150 }}
+// 					options={[
+// 						{ value: "all", label: "All" },
+// 						{ value: "TRADED", label: "Traded" },
+// 						{ value: "PENDING", label: "Pending" },
+// 						{ value: "CANCELLED", label: "Cancelled" },
+// 						{ value: "REJECTED", label: "Rejected" },
+// 						{ value: "TRANSIT", label: "Transit" },
+// 						{ value: "PART_TRADED", label: "Part Traded" },
+// 					]}
+// 				/>
+// 			</div>
+// 			<div className="overflow-x-auto">
+// 				<table className="w-full">
+// 					<thead className="bg-surface-highlight border-b border-border">
+// 						{table.getHeaderGroups().map((headerGroup) => (
+// 							<tr key={headerGroup.id}>
+// 								{headerGroup.headers.map((header) => (
+// 									<th
+// 										key={header.id}
+// 										className="text-left px-3 py-2 text-sm font-medium text-gray-400"
+// 									>
+// 										{flexRender(
+// 											header.column.columnDef.header,
+// 											header.getContext(),
+// 										)}
+// 									</th>
+// 								))}
+// 							</tr>
+// 						))}
+// 					</thead>
+// 					<tbody>
+// 						{table.getRowModel().rows.map((row) => (
+// 							<tr
+// 								key={row.id}
+// 								className="border-b border-border hover:bg-surface-highlight/50"
+// 							>
+// 								{row.getVisibleCells().map((cell) => (
+// 									<td key={cell.id} className="px-3 py-2 text-sm">
+// 										{flexRender(cell.column.columnDef.cell, cell.getContext())}
+// 									</td>
+// 								))}
+// 							</tr>
+// 						))}
+// 					</tbody>
+// 				</table>
+// 			</div>
+// 		</div>
+// 	);
+// };
 
 export const DhanPositions: React.FC = () => {
 	const queryClient = useQueryClient();
@@ -540,6 +544,7 @@ export const DhanPositions: React.FC = () => {
 	>("positions");
 	const [lastUpdated, setLastUpdated] = useState(0);
 	const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+	const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
 	const {
 		data: holdings,
@@ -662,30 +667,35 @@ export const DhanPositions: React.FC = () => {
 					</div>
 				</div>
 
-				<div className="flex gap-2 mb-4">
-					<Button
-						type={activeTab === "holdings" ? "primary" : "default"}
-						onClick={() => setActiveTab("holdings")}
+				<Flex className="!pb-4" justify="space-between">
+					<Radio.Group
+						value={activeTab}
+						onChange={(e) => setActiveTab(e.target.value)}
+						optionType="button"
+						buttonStyle="solid"
+						style={{ width: "fit-content" }}
 					>
-						Holdings
-					</Button>
+						<Radio.Button value="holdings">Holdings</Radio.Button>
+						<Radio.Button value="positions">Open Positions</Radio.Button>
+						<Radio.Button value="orders">Order Book</Radio.Button>
+					</Radio.Group>
 					<Button
-						type={activeTab === "positions" ? "primary" : "default"}
-						onClick={() => setActiveTab("positions")}
+						type="primary"
+						icon={<PlusOutlined />}
+						onClick={() => setIsOrderModalOpen(true)}
 					>
-						Open Positions
+						Add Position
 					</Button>
-					<Button
-						type={activeTab === "orders" ? "primary" : "default"}
-						onClick={() => setActiveTab("orders")}
-					>
-						Order Book
-					</Button>
-				</div>
+				</Flex>
 
 				<div className="bg-surface border border-border rounded-lg p-4">
 					{renderContent()}
 				</div>
+
+				<OrderModal
+					isOpen={isOrderModalOpen}
+					onClose={() => setIsOrderModalOpen(false)}
+				/>
 			</div>
 		</ConfigProvider>
 	);

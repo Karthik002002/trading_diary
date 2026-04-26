@@ -74,6 +74,16 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 					activeIcon="integration-active"
 					defaultIcon="integration"
 				/>
+				{getIsDhanEnabled?.enable && (
+					<SidebarNavItem
+						to="/dhan"
+						label="Dhan"
+						isCollapsed={isCollapsed}
+						isActive={activeLocation.pathname === "/dhan"}
+						activeIcon="dhan"
+						defaultIcon="dhan"
+					/>
+				)}
 				<SidebarNavItem
 					to="/live-positions"
 					label="Live Positions"
@@ -95,27 +105,18 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
 					label="Discipline"
 					isCollapsed={isCollapsed}
 					isActive={activeLocation.pathname === "/discipline"}
-					activeIcon="discipline"
-					defaultIcon="discipline"
+					activeIcon="tasks-out"
+					defaultIcon="tasks"
 				/>
 				<SidebarNavItem
 					to="/accountability/feed"
 					label="Accountability"
 					isCollapsed={isCollapsed}
-					isActive={activeLocation.pathname === "/accountability"}
-					activeIcon="accountability"
+					isActive={activeLocation.pathname === "/accountability/feed"}
+					activeIcon="accountability-active"
 					defaultIcon="accountability"
 				/>
-				{getIsDhanEnabled?.enable && (
-					<SidebarNavItem
-						to="/dhan"
-						label="Dhan"
-						isCollapsed={isCollapsed}
-						isActive={activeLocation.pathname === "/dhan"}
-						activeIcon="dhan"
-						defaultIcon="dhan"
-					/>
-				)}
+				
 				<SidebarNavItem
 					to="/settings"
 					label="Settings"

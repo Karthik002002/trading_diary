@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
 	fetchDhanHoldings,
+	fetchDhanInstruments,
 	fetchDhanOrders,
 	fetchDhanPositions,
 } from "../api/client";
@@ -23,5 +24,13 @@ export const useDhanOrders = () => {
 	return useQuery({
 		queryKey: ["dhan", "orders"],
 		queryFn: fetchDhanOrders,
+	});
+};
+
+export const useDhanInstruments = (search?: string) => {
+	return useQuery({
+		queryKey: ["dhan", "instruments", search],
+		queryFn: () => fetchDhanInstruments(search),
+		enabled: !!search && search.length >= 2,
 	});
 };

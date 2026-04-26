@@ -27,7 +27,7 @@ export const queryClient = new QueryClient({
 	}),
 });
 
-const BASE_URL = (process.env.BASE_URL || "http://localhost:5000") + "/api";
+const BASE_URL = `${process.env.BASE_URL || "http://localhost:5000"}/api`;
 export const BACKEND_URL = process.env.BASE_URL || "http://localhost:5000";
 export const fetchTrades = async (
 	page = 1,
@@ -771,6 +771,68 @@ export interface DhanOrder {
 export const fetchDhanOrders = async (): Promise<DhanOrder[]> => {
 	const response = await fetch(`${BASE_URL}/dhan/orders`);
 	if (!response.ok) throw new Error("Failed to fetch Dhan orders");
+	const data = await response.json();
+	if (data.error) throw new Error(data.error);
+	return Array.isArray(data) ? data : [];
+};
+
+export interface DhanOrderRequest {
+	dhanClientId: string;
+	correlationId?: string;
+	transactionType: "BUY" | "SELL";
+	exchangeSegment: "NSE_EQ" | "BSE_EQ" | "NSE_FNO" | "BSE_FNO" | "MCX_COMM";
+	productType: "INTRADAY" | "CNC";
+	orderType: "LIMIT" | "MARKET" | "STOP_LOSS" | "STOP_LOSS_MARKET";
+	validity?: "DAY" | "IOC";
+	securityId: string;
+	quantity: number;
+	disclosedQuantity?: number;
+	price?: number;
+	triggerPrice?: number;
+	afterMarketOrder?: boolean;
+	amoTime?: "PRE_OPEN" | "OPEN" | "OPEN_30" | "OPEN_60";
+	targetPrice?: number;
+	stopLossPrice?: number;
+	trailingJump?: number;
+}
+
+export interface DhanOrderResponse {
+	orderId: string;
+	status: string;
+	orderStatus: string;
+}
+
+export const placeDhanOrder = async (
+	order: DhanOrderRequest,
+	isSuperOrder: boolean,
+): Promise<DhanOrderResponse> => {
+	const response = await fetch(`${BASE_URL}/dhan/order`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ ...order, isSuperOrder }),
+	});
+	if (!response.ok) {
+		const data = await response.json();
+		throw new Error(data.error || "Failed to place order");
+	}
+	return response.json();
+};
+
+export interface DhanInstrument {
+	securityId: string;
+	tradingSymbol: string;
+	companyName?: string;
+	exchange: string;
+	instrumentType: string;
+}
+
+export const fetchDhanInstruments = async (
+	search?: string,
+): Promise<DhanInstrument[]> => {
+	if (!search) return [];
+	const params = new URLSearchParams({ q: search });
+	const response = await fetch(`${BASE_URL}/dhan/instruments/search?${params}`);
+	if (!response.ok) throw new Error("Failed to search instruments");
 	const data = await response.json();
 	if (data.error) throw new Error(data.error);
 	return Array.isArray(data) ? data : [];

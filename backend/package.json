@@ -21,6 +21,7 @@
 		"cors": "^2.8.5",
 		"dayjs": "^1.11.19",
 		"dotenv": "^17.2.3",
+		"errorhandler": "^1.5.2",
 		"express": "^5.2.1",
 		"express-validator": "^7.3.1",
 		"mongoose": "^9.0.1",
@@ -35,6 +36,7 @@
 	"devDependencies": {
 		"@types/cheerio": "^0.22.35",
 		"@types/cors": "^2.8.19",
+		"@types/errorhandler": "^1.5.3",
 		"@types/express": "^5.0.6",
 		"@types/mongoose": "^5.11.96",
 		"@types/node": "^25.0.1",
