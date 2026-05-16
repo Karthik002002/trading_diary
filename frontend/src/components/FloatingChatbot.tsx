@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { MessageCircle, X } from "lucide-react";
 
 type ImageAttachment = {
@@ -14,7 +20,8 @@ type ChatMessage = {
   images?: ImageAttachment[];
 };
 
-const BASE_URL = "http://localhost:5000/api";
+import API_BASE from "../api/config";
+const BASE_URL = API_BASE;
 
 const FloatingChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -105,7 +112,8 @@ const FloatingChatbot = () => {
       }
 
       const data = (await res.json()) as { reply?: string };
-      const replyText = data.reply?.trim() || "Sorry, I could not generate a reply.";
+      const replyText =
+        data.reply?.trim() || "Sorry, I could not generate a reply.";
 
       const assistantMessage: ChatMessage = {
         id: `${Date.now()}-assistant`,
@@ -226,7 +234,9 @@ const FloatingChatbot = () => {
                 <div className="flex h-full flex-col items-center justify-center text-center text-gray-400">
                   <MessageCircle className="mb-2 size-8" />
                   <p className="text-sm font-medium">Start a conversation</p>
-                  <p className="text-xs">Type a message below to begin chatting</p>
+                  <p className="text-xs">
+                    Type a message below to begin chatting
+                  </p>
                 </div>
               ) : (
                 messages.map((m) => (
@@ -307,7 +317,9 @@ const FloatingChatbot = () => {
               <button
                 type="submit"
                 className="rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={(!input.trim() && pendingImages.length === 0) || isLoading}
+                disabled={
+                  (!input.trim() && pendingImages.length === 0) || isLoading
+                }
               >
                 {isLoading ? "..." : "Send"}
               </button>

@@ -14,7 +14,8 @@ export const useTags = (search?: string) =>
     queryFn: () => fetchTags(search),
   });
 
-const BASE_URL = "http://localhost:5000/api";
+import API_BASE from "../api/config";
+const BASE_URL = API_BASE;
 
 // --- Generic Helper ---
 async function fetchData(endpoint: string, params?: Record<string, string>) {

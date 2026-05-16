@@ -110,7 +110,7 @@ const Dashboard: React.FC = () => {
 	}, []);
 
 	return (
-		<div className="container mx-auto p-0">
+		<div className="w-full mx-auto p-0">
 			<div className=" sticky top-2  z-1000 grid grid-cols-16 sm:grid-cols-8 md:grid-cols-6 lg:grid-cols-10 xl:grid-cols-16  xs:grid-cols-4  gap-4 p-4 rounded-lg items-end bg-slate-800">
 				<div className="col-span-2">
 					<Select
