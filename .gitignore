@@ -1,7 +1,6 @@
 /frontend/node_modules
 /backend/node_modules
 /backend/uploads
-.env
 /node_modules
 /backend/dist
 /backups
@@ -81,7 +80,6 @@ dmypy.json
 .pyre/
 
 # IDEs and editors
-.vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
@@ -91,8 +89,6 @@ dmypy.json
 Thumbs.db
 
 # Environment variables
-.env
-.env.*
 *.env
 
 # Logs
@@ -109,3 +105,4 @@ Thumbs.db
 # MacOS
 .AppleDouble
 .LSOverride
+config.bat
