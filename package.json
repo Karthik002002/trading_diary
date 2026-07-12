@@ -2,7 +2,7 @@
 	"scripts": {
 		"predev": "npm run backup:daily",
 		"backup:daily": "node scripts/daily-db-backup.js",
-		"dev": "concurrently \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\"",
+		"dev": "concurrently \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\" \"python3 backend/popup_menu.py\"",
 		"build": "npm run build --prefix backend && npm run build --prefix frontend && node -e \"require('fs').rmSync('backend/dist/client',{recursive:true,force:true});require('fs').cpSync('frontend/dist','backend/dist/client',{recursive:true})\"",
 		"start": "react-scripts start ",
 		"test": "cross-env CI=true react-scripts test --env=jsdom",
